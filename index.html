@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EnergyDNA – Site Energy Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0d1117; --surface:#161b22; --surface2:#21262d; --border:#30363d;
+    --accent:#2ea043; --accent2:#388bfd; --accent3:#e3882a; --pink:#db61a2; --red:#f85149;
+    --text:#c9d1d9; --text-muted:#8b949e; --white:#f0f6fc;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;line-height:1.55}
+  body.ar{font-family:'Cairo',sans-serif;direction:rtl}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 40% at 15% 10%,rgba(56,139,253,.06),transparent 55%);pointer-events:none;z-index:0}
+  .wrapper{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:0 20px 40px}
+  :focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+
+  header{padding:22px 0 16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:12px}
+  .logo-icon{width:38px;height:38px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .logo-text h1{font-size:20px;font-weight:700;color:var(--white);letter-spacing:-.3px}
+  .logo-text p{font-size:11px;color:var(--text-muted);font-weight:500}
+  .lang-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);padding:6px 16px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600}
+  .lang-btn:hover{border-color:var(--accent2);color:var(--text)}
+
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:8px}
+  .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);padding:10px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--white);border-bottom-color:var(--accent)}
+  .tabpane{display:none}.tabpane.active{display:block}
+
+  .hero{padding:30px 0 20px;max-width:760px}
+  .hero h2{font-size:clamp(24px,4vw,36px);line-height:1.15;font-weight:800;color:var(--white);margin-bottom:10px;letter-spacing:-.5px}
+  .hero p{font-size:14px;color:var(--text-muted)}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:16px}
+  .card-title{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;font-size:15px;font-weight:700;color:var(--white)}
+  .card-title small{font-size:12px;font-weight:500;color:var(--text-muted)}
+  .card-sub{font-size:12px;color:var(--text-muted);margin-bottom:16px}
+  .sec-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin:26px 0 12px}
+  body.ar .sec-title{letter-spacing:0;font-size:13px}
+
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:12px;font-weight:600;color:var(--text-muted)}
+  .hint{font-size:11px;color:var(--text-muted);opacity:.85}
+  input,select,textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:7px;font-family:inherit;font-size:13px;width:100%}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent2)}
+  input[type=range]{padding:0;accent-color:var(--accent)}
+  textarea{min-height:110px;resize:vertical;font-family:'Space Mono',monospace;font-size:12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .row .grow{flex:1;min-width:180px}
+
+  .btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .btn:hover{border-color:var(--accent2)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{filter:brightness(1.1)}
+  .btn.big{width:100%;padding:14px;font-size:15px;margin-top:6px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden}
+  .seg button{background:var(--bg);border:none;color:var(--text-muted);padding:8px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .seg button.on{background:var(--surface2);color:var(--white)}
+
+  .map-wrap{position:relative;height:420px;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:12px 0;direction:ltr;background:var(--surface2)}
+  #map-leaflet,#map-google{position:absolute;inset:0}
+  #map-google{display:none}
+  .pin{background:none;border:none}
+  .pin-dot{width:22px;height:22px;border-radius:50% 50% 50% 0;background:var(--red);border:2px solid #fff;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .coords{font-family:'Space Mono',monospace;font-size:12px;color:var(--accent);background:rgba(46,160,67,.1);border:1px solid rgba(46,160,67,.25);border-radius:6px;padding:6px 10px;display:none}
+  .gkey{display:none;margin-top:10px;padding:12px;background:var(--bg);border:1px dashed var(--border);border-radius:8px}
+  .gkey.show{display:block}
+
+  details.adv{margin-top:14px;border:1px solid var(--border);border-radius:8px;padding:10px 14px;background:var(--bg)}
+  details.adv summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--text)}
+  details.adv .grid{margin-top:12px}
+
+  .status{display:none;align-items:center;gap:10px;padding:11px 14px;border-radius:8px;font-size:13px;margin-top:12px}
+  .status.loading{display:flex;background:rgba(56,139,253,.1);border:1px solid rgba(56,139,253,.3);color:#79b8ff}
+  .status.error{display:flex;background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:#ff7b72}
+  .status.warn{display:flex;background:rgba(227,136,42,.1);border:1px solid rgba(227,136,42,.3);color:#f0a95a}
+  .spinner{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion:reduce){.spinner{animation-duration:2s}html{scroll-behavior:auto}}
+
+  #site-results{display:none}
+  .tiles{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(135px,1fr))}
+  .tile{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+  .tile .v{font-family:'Space Mono',monospace;font-size:19px;font-weight:700;color:var(--white)}
+  .tile .u{font-size:10px;color:var(--text-muted)}
+  .tile .l{font-size:11px;color:var(--text-muted);margin-top:2px;font-weight:600}
+
+  .winner{background:linear-gradient(135deg,rgba(46,160,67,.16),rgba(56,139,253,.1));border:1px solid rgba(46,160,67,.45);border-radius:12px;padding:22px;margin:18px 0}
+  .winner .kick{font-size:12px;color:var(--accent);font-weight:700}
+  .winner h3{font-size:clamp(22px,3.4vw,30px);color:var(--white);margin:4px 0 8px;font-weight:800}
+  .winner p{font-size:13px;color:var(--text);max-width:780px}
+  .winner ul{margin:10px 0 0;padding-inline-start:18px;font-size:13px}
+  .winner li{margin-bottom:3px}
+
+  .tech-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .tech{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+  .tech.best{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .tech.dim{opacity:.82}
+  .tech-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+  .tech-h b{font-size:15px;color:var(--white)}
+  .chip{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:100px;white-space:nowrap;border:1px solid}
+  .chip.best{color:#56d364;border-color:rgba(86,211,100,.5);background:rgba(46,160,67,.15)}
+  .chip.viable{color:#79b8ff;border-color:rgba(56,139,253,.5);background:rgba(56,139,253,.12)}
+  .chip.marginal{color:#f0a95a;border-color:rgba(227,136,42,.5);background:rgba(227,136,42,.12)}
+  .chip.poor{color:#ff7b72;border-color:rgba(248,81,73,.5);background:rgba(248,81,73,.12)}
+  .chip.data,.chip.na,.chip.info{color:var(--text-muted);border-color:var(--border);background:var(--surface2)}
+  .score{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .score .n{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--white);min-width:44px}
+  .bar{flex:1;height:8px;background:var(--surface2);border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+  .kv{display:grid;grid-template-columns:1fr auto;gap:3px 12px;font-size:12px}
+  .kv span:nth-child(odd){color:var(--text-muted)}
+  .kv span:nth-child(even){color:var(--white);font-family:'Space Mono',monospace;text-align:end}
+  .tech .note{margin-top:10px;font-size:11.5px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:8px}
+
+  .tscroll{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+  table{border-collapse:collapse;width:100%;font-size:12px;min-width:680px}
+  th,td{padding:9px 12px;border-bottom:1px solid var(--border);text-align:start;white-space:nowrap}
+  th{background:var(--surface2);color:var(--text-muted);font-weight:700;font-size:11px}
+  td.num{font-family:'Space Mono',monospace;color:var(--white)}
+  tr.win td{background:rgba(46,160,67,.08)}
+
+  .spec{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .spec div{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px;text-align:center}
+  .spec b{display:block;font-family:'Space Mono',monospace;font-size:18px;color:var(--accent)}
+  .spec span{font-size:11px;color:var(--text-muted)}
+
+  .charts{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+  .chart-card h4{font-size:13px;color:var(--white);margin-bottom:10px}
+  .chart-box{position:relative;height:290px;direction:ltr}
+  @media(max-width:520px){.charts{grid-template-columns:1fr}}
+
+  .tips{list-style:none;display:grid;gap:8px}
+  .tips li{display:flex;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:11px 14px;font-size:12.5px}
+  .tips li::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--accent);margin-top:7px;flex-shrink:0}
+  .tips li.warn::before{background:var(--accent3)}
+  .disclaimer{font-size:11.5px;color:var(--text-muted);border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-top:14px;background:var(--surface)}
+
+  .metrics-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .metric-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px}
+  .metric-label{font-size:11px;font-weight:700;color:var(--text-muted)}
+  .metric-value{font-family:'Space Mono',monospace;font-size:21px;font-weight:700;color:var(--white);margin:3px 0}
+  .metric-desc{font-size:10.5px;color:var(--text-muted)}
+  .interp{list-style:none;display:grid;gap:8px}
+  .interp li{display:flex;gap:10px;font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:11px 14px}
+  .interp .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:7px;flex-shrink:0}
+  .interp .dot.warn{background:var(--accent3)}.interp .dot.info{background:var(--accent2)}
+  .output-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:14px}
+  .output-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+  .output-card b{display:block;font-family:'Space Mono',monospace;font-size:22px;color:var(--accent)}
+  .output-card span{font-size:11px;color:var(--text-muted)}
+  .err{display:none;color:#ff7b72;font-size:12.5px;margin-top:8px}
+
+  footer{border-top:1px solid var(--border);padding:20px 0 0;text-align:center;color:var(--text-muted);font-size:12px;margin-top:30px}
+  footer a{color:var(--accent2);text-decoration:none}
+
+  @media(max-width:600px){.map-wrap{height:340px}.card{padding:16px}}
+  @media print{
+    body::before,.tabs,.lang-btn,.map-wrap,.btn,#step-inputs,.status,header .head-actions{display:none!important}
+    body{background:#fff;color:#000}.card,.tech,.tile,.chart-card,.winner{background:#fff;border-color:#bbb;color:#000}
+    .tile .v,.tech-h b,.winner h3,td.num,.kv span:nth-child(even){color:#000}
+    .tabpane{display:none!important}#tab-site{display:block!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">◈</div>
+    <div class="logo-text"><h1>EnergyDNA</h1><p data-k="tagline"></p></div>
+  </div>
+  <div class="head-actions"><button class="lang-btn" id="lang-toggle" onclick="toggleLang()">🌐 عربي</button></div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab active" id="tabbtn-site" onclick="showTab('site')" data-k="tab_site"></button>
+  <button class="tab" id="tabbtn-lab" onclick="showTab('lab')" data-k="tab_lab"></button>
+</nav>
+
+<!-- ═════════════ TAB 1 : SITE ANALYSIS ═════════════ -->
+<div id="tab-site" class="tabpane active">
+
+  <section class="hero">
+    <h2 data-k="hero_h"></h2>
+    <p data-k="hero_p"></p>
+  </section>
+
+  <div id="step-inputs">
+
+  <!-- 1. LOCATION -->
+  <div class="card">
+    <div class="card-title"><span>① <span data-k="s1_t"></span></span></div>
+    <div class="card-sub" data-k="s1_sub"></div>
+
+    <div class="row">
+      <input class="grow" id="place-q" data-kph="search_ph" onkeydown="if(event.key==='Enter')searchPlace()">
+      <button class="btn" onclick="searchPlace()" data-k="btn_search"></button>
+      <button class="btn" onclick="useMyLocation()" data-k="btn_loc"></button>
+      <select id="gov" style="width:auto;min-width:170px" onchange="pickGov()"></select>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <div class="seg">
+        <button id="prov-osm" class="on" onclick="setProvider('osm')" data-k="prov_osm"></button>
+        <button id="prov-g" onclick="setProvider('google')">Google Maps</button>
+      </div>
+      <span class="hint" data-k="map_hint"></span>
+    </div>
+
+    <div class="gkey" id="gkey-box">
+      <div class="row">
+        <input class="grow" id="gkey" type="password" autocomplete="off" data-kph="gkey_ph">
+        <button class="btn primary" onclick="saveGKey()" data-k="gkey_save"></button>
+      </div>
+      <div class="hint" style="margin-top:6px" data-k="gkey_note"></div>
+    </div>
+
+    <div class="map-wrap">
+      <div id="map-leaflet"></div>
+      <div id="map-google"></div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <div class="field"><label data-k="lat"></label><input type="number" id="lat" step="0.0001" min="-90" max="90" oninput="onCoordInput()"></div>
+      <div class="field"><label data-k="lon"></label><input type="number" id="lon" step="0.0001" min="-180" max="180" oninput="onCoordInput()"></div>
+    </div>
+  </div>
+
+  <!-- 2. DEMAND -->
+  <div class="card">
+    <div class="card-title"><span>② <span data-k="s2_t"></span></span></div>
+    <div class="card-sub" data-k="s2_sub"></div>
+    <div class="grid">
+      <div class="field"><label data-k="d_mode"></label>
+        <select id="d-mode" onchange="onModeChange()"><option value="bill" data-k="d_mode_bill"></option><option value="kwh" data-k="d_mode_kwh"></option></select></div>
+      <div class="field"><label id="d-val-label"></label><input type="number" id="d-val" value="1500" min="1"></div>
+      <div class="field"><label data-k="price"></label><input type="number" id="price" value="2.18" step="0.05" min="0.1"><span class="hint" data-k="price_hint"></span></div>
+      <div class="field"><label data-k="supply"></label>
+        <select id="supply"><option value="grid" data-k="sup_grid"></option><option value="off" data-k="sup_off"></option></select></div>
+      <div class="field"><label><span data-k="cov"></span>: <b id="cov-val">100%</b></label><input type="range" id="cov" min="30" max="100" step="5" value="100" oninput="$('cov-val').textContent=this.value+'%'"></div>
+      <div class="field"><label data-k="area"></label><input type="number" id="area" value="300" min="0"><span class="hint" data-k="area_hint"></span></div>
+      <div class="field"><label data-k="mount"></label>
+        <select id="mount"><option value="roof" data-k="mnt_roof"></option><option value="ground" data-k="mnt_ground"></option></select></div>
+      <div class="field"><label data-k="budget"></label><input type="number" id="budget" value="0" min="0"><span class="hint" data-k="budget_hint"></span></div>
+    </div>
+  </div>
+
+  <!-- 3. OTHER RESOURCES -->
+  <div class="card">
+    <div class="card-title"><span>③ <span data-k="s3_t"></span></span></div>
+    <div class="card-sub" data-k="s3_sub"></div>
+    <div class="grid">
+      <div class="field"><label data-k="heads"></label><input type="number" id="heads" value="0" min="0"></div>
+      <div class="field"><label data-k="residue"></label><input type="number" id="residue" value="0" min="0" step="0.5"></div>
+      <div class="field"><label data-k="hhead"></label><input type="number" id="hhead" value="0" min="0" step="0.5"></div>
+      <div class="field"><label data-k="hflow"></label><input type="number" id="hflow" value="0" min="0"></div>
+    </div>
+
+    <details class="adv">
+      <summary data-k="adv_t"></summary>
+      <div class="hint" style="margin-top:8px" data-k="adv_note"></div>
+      <div class="grid">
+        <div class="field"><label data-k="a_cpv"></label><input type="number" id="a-cpv" value="16000"></div>
+        <div class="field"><label data-k="a_cwind"></label><input type="number" id="a-cwind" value="100000"></div>
+        <div class="field"><label data-k="a_cbio"></label><input type="number" id="a-cbio" value="70000"></div>
+        <div class="field"><label data-k="a_chydro"></label><input type="number" id="a-chydro" value="90000"></div>
+        <div class="field"><label data-k="a_cbatt"></label><input type="number" id="a-cbatt" value="10000"></div>
+        <div class="field"><label data-k="a_esc"></label><input type="number" id="a-esc" value="5" step="0.5"></div>
+        <div class="field"><label data-k="a_disc"></label><input type="number" id="a-disc" value="10" step="0.5"></div>
+        <div class="field"><label data-k="a_pr"></label><input type="number" id="a-pr" value="80" min="50" max="95"></div>
+        <div class="field"><label data-k="a_tilt"></label><input type="number" id="a-tilt" value="10" min="0" max="25"></div>
+        <div class="field"><label data-k="a_hub"></label><input type="number" id="a-hub" value="30" min="10" max="120"></div>
+        <div class="field"><label data-k="a_panel"></label><input type="number" id="a-panel" value="550" min="300" max="800"></div>
+        <div class="field"><label data-k="a_co2"></label><input type="number" id="a-co2" value="0.5" step="0.05"></div>
+      </div>
+    </details>
+
+    <button class="btn primary big" id="btn-analyze" onclick="runAnalysis()" data-k="btn_analyze"></button>
+    <div class="status" id="status"></div>
+  </div>
+
+  </div><!-- /step-inputs -->
+
+  <!-- RESULTS -->
+  <div id="site-results"></div>
+
+</div>
+
+<!-- ═════════════ TAB 2 : DATA LAB ═════════════ -->
+<div id="tab-lab" class="tabpane">
+  <section class="hero">
+    <h2 data-k="lab_h"></h2>
+    <p data-k="lab_p"></p>
+  </section>
+
+  <div class="card">
+    <div class="card-title"><span data-k="lab_data"></span></div>
+    <div class="row" style="margin:10px 0">
+      <span class="hint" data-k="lab_nasa"></span>
+      <button class="btn" onclick="loadNasaSeries('ghi')">☀️ GHI</button>
+      <button class="btn" onclick="loadNasaSeries('wind')">💨 <span data-k="lab_wind"></span></button>
+      <button class="btn" onclick="loadNasaSeries('temp')">🌡️ <span data-k="lab_temp"></span></button>
+    </div>
+    <textarea id="data-input" data-kph="lab_ph"></textarea>
+    <div class="row" style="margin-top:10px">
+      <label class="btn" style="cursor:pointer">📂 <span data-k="lab_csv"></span><input type="file" id="csv-file" accept=".csv,.txt" style="display:none" onchange="handleCSV(event)"></label>
+      <span class="hint" id="csv-name"></span>
+      <button class="btn primary" style="margin-inline-start:auto" onclick="analyzeLab()" data-k="lab_run"></button>
+    </div>
+    <div class="err" id="lab-err"></div>
+  </div>
+
+  <div id="lab-results" style="display:none">
+    <div class="sec-title" data-k="lab_res"></div>
+    <div class="metrics-grid" id="lab-metrics"></div>
+    <div class="chart-card" style="margin-top:14px"><h4 data-k="lab_chart"></h4><div class="chart-box"><canvas id="labChart"></canvas></div></div>
+    <div class="sec-title" data-k="lab_notes"></div>
+    <ul class="interp" id="lab-interp"></ul>
+
+    <div class="card" style="margin-top:18px">
+      <div class="card-title"><span data-k="est_t"></span></div>
+      <div class="card-sub" data-k="est_sub"></div>
+      <div class="grid">
+        <div class="field"><label data-k="est_type"></label>
+          <select id="est-type" onchange="onEstType()">
+            <option value="ghi" data-k="est_ghi"></option>
+            <option value="wind" data-k="est_wind"></option>
+            <option value="power" data-k="est_power"></option>
+          </select></div>
+        <div class="field"><label id="est-area-l" data-k="est_area"></label><input type="number" id="est-area" value="50" min="1"></div>
+        <div class="field"><label id="est-eff-l" data-k="est_eff"></label><input type="number" id="est-eff" value="20" min="1" max="100"></div>
+        <div class="field" id="est-hours-f" style="display:none"><label data-k="est_hours"></label><input type="number" id="est-hours" value="24" min="1" max="24"></div>
+        <div class="field"><label data-k="est_price"></label><input type="number" id="est-price" value="2.18" step="0.05"></div>
+        <div class="field"><label data-k="est_home"></label><input type="number" id="est-home" value="20" min="1"></div>
+      </div>
+      <button class="btn primary" style="margin-top:14px" onclick="calcLabOutput()" data-k="est_calc"></button>
+      <div class="output-grid" id="est-out" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>EnergyDNA · <span data-k="foot"></span> · <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a></p>
+</footer>
+</div>
+
+<script>
+'use strict';
+/* ───────── helpers ───────── */
+let lang = 'en';
+const tr = (en, ar) => lang === 'ar' ? ar : en;
+const $ = id => document.getElementById(id);
+const sum = a => a.reduce((x, y) => x + y, 0);
+const avg = a => a.length ? sum(a) / a.length : 0;
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const fmt = (n, d = 0) => (n === null || n === undefined || !isFinite(n)) ? '—' : Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmtM = n => !isFinite(n) ? '—' : n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : fmt(n);
+const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const MON_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MON_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const DAYS = [31,28.25,31,30,31,30,31,31,30,31,30,31];
+const monthNames = () => lang === 'ar' ? MON_AR : MON_EN;
+
+/* ───────── static strings ───────── */
+const S = {
+ tagline:['Site Energy Analyzer · NASA POWER','محلل طاقة المواقع · NASA POWER'],
+ tab_site:['🌍 Site Analysis','🌍 تحليل الموقع'],
+ tab_lab:['🧬 Data Lab (stability)','🧬 معمل البيانات (الاستقرار)'],
+ hero_h:['Pick any spot on the map.<br>Get the best energy source for it.','اختار أي مكان على الخريطة.<br>واعرف أنسب مصدر طاقة ليه.'],
+ hero_p:['EnergyDNA pulls NASA POWER climate data for your exact coordinates, scores every energy source (solar, wind, biogas, hydro, hybrid), sizes each system for your demand, and tells you what it must deliver.','EnergyDNA بيسحب بيانات NASA POWER لإحداثيات مكانك بالظبط، ويقيّم كل مصادر الطاقة (شمس، رياح، بيوجاز، مائية، هجين)، ويحسب حجم كل سيستم حسب استهلاكك، ويقولك المطلوب منه.'],
+ s1_t:['Location','المكان'], s1_sub:['Search, click the map, or drag the pin. Satellite view works without any key.','ابحث أو اضغط على الخريطة أو اسحب الدبوس. عرض القمر الصناعي شغال من غير أي مفتاح.'],
+ search_ph:['Search a place (e.g. Beni Suef, Siwa, Hurghada)…','ابحث عن مكان (مثلاً بني سويف، سيوة، الغردقة)…'],
+ btn_search:['Search','بحث'], btn_loc:['📍 My location','📍 موقعي'],
+ prov_osm:['Satellite / OSM (free)','قمر صناعي / OSM (مجاني)'],
+ map_hint:['Click the map to drop the pin.','اضغط على الخريطة لوضع الدبوس.'],
+ gkey_ph:['Paste your Google Maps API key','الصق مفتاح Google Maps API'],
+ gkey_save:['Save & load','حفظ وتحميل'],
+ gkey_note:['Enable "Maps JavaScript API" + "Geocoding API" for the key. It is stored only in this browser.','فعّل "Maps JavaScript API" و "Geocoding API" للمفتاح. بيتخزن في متصفحك بس.'],
+ lat:['Latitude','خط العرض'], lon:['Longitude','خط الطول'],
+ s2_t:['Demand & constraints','الاستهلاك والقيود'], s2_sub:['What must the system deliver?','إيه المطلوب من السيستم؟'],
+ d_mode:['Enter demand as','أدخل الاستهلاك بـ'], d_mode_bill:['Monthly bill (EGP)','فاتورة شهرية (جنيه)'], d_mode_kwh:['Energy per day (kWh)','طاقة يومية (kWh)'],
+ price:['Current energy cost (EGP/kWh)','سعر الطاقة الحالي (جنيه/kWh)'],
+ price_hint:['Use your marginal tier or generator cost. Grid tiers were revised in 2026.','استخدم سعر الشريحة الأعلى عندك أو تكلفة المولد. شرائح الكهرباء اتعدلت في 2026.'],
+ supply:['Supply mode','نوع التغذية'], sup_grid:['Grid-connected (net metering)','متصل بالشبكة (net metering)'], sup_off:['Off-grid (needs storage)','معزول عن الشبكة (يحتاج بطاريات)'],
+ cov:['Target coverage','نسبة التغطية المطلوبة'],
+ area:['Available area (m²)','المساحة المتاحة (م²)'], area_hint:['0 = unlimited','0 = مفتوحة'],
+ mount:['Mounting','طريقة التركيب'], mnt_roof:['Rooftop','سطح'], mnt_ground:['Ground','أرض'],
+ budget:['Budget (EGP)','الميزانية (جنيه)'], budget_hint:['0 = no limit','0 = بدون حد'],
+ s3_t:['Other local resources (optional)','موارد محلية أخرى (اختياري)'],
+ s3_sub:['Biogas and hydro depend on things satellites cannot see. Fill what you have.','البيوجاز والمائية بتعتمد على حاجات القمر الصناعي مبيشوفهاش. املا اللي عندك.'],
+ heads:['Cattle / buffalo (head)','ماشية / جاموس (رأس)'], residue:['Crop residue (dry t/year)','مخلفات زراعية (طن جاف/سنة)'],
+ hhead:['Water drop / head (m)','فرق منسوب المياه (م)'], hflow:['Water flow (L/s)','تدفق المياه (لتر/ث)'],
+ adv_t:['⚙️ Advanced assumptions (costs, finance, technical)','⚙️ فرضيات متقدمة (تكاليف، مالية، فنية)'],
+ adv_note:['Defaults are typical estimates, not quotes. Replace them with real offers from suppliers.','القيم الافتراضية تقديرات عامة مش عروض أسعار. بدّلها بعروض حقيقية من الموردين.'],
+ a_cpv:['PV installed cost (EGP/kWp)','تكلفة الطاقة الشمسية (جنيه/kWp)'], a_cwind:['Small wind cost (EGP/kW)','تكلفة الرياح الصغيرة (جنيه/kW)'],
+ a_cbio:['Biogas genset+digester (EGP/kW)','بيوجاز مولد+هاضم (جنيه/kW)'], a_chydro:['Micro-hydro cost (EGP/kW)','مائية صغيرة (جنيه/kW)'],
+ a_cbatt:['Battery cost (EGP/kWh)','تكلفة البطارية (جنيه/kWh)'], a_esc:['Energy price rise (%/yr)','زيادة سعر الطاقة (%/سنة)'],
+ a_disc:['Discount rate (%)','معدل الخصم (%)'], a_pr:['PV performance ratio (%)','معامل أداء الألواح (%)'],
+ a_tilt:['Tilt gain vs horizontal (%)','مكسب الميل عن الأفقي (%)'], a_hub:['Wind hub height (m)','ارتفاع برج الرياح (م)'],
+ a_panel:['Panel power (W)','قدرة اللوح (وات)'], a_co2:['Grid CO₂ (kg/kWh)','انبعاثات الشبكة (kg/kWh)'],
+ btn_analyze:['🔍 Analyze this location','🔍 حلّل المكان ده'],
+ lab_h:['Data Lab: how stable is your energy data?','معمل البيانات: استقرار بياناتك'],
+ lab_p:['Paste or upload any readings, or pull NASA daily series for the site you picked, and get variance, ramps and dominant cycles.','الصق أو ارفع أي قراءات، أو اسحب سلسلة NASA اليومية للموقع اللي اخترته، واحصل على التباين والقفزات والدورات.'],
+ lab_data:['Your data','بياناتك'], lab_nasa:['Pull NASA daily series for the selected site:','اسحب بيانات NASA اليومية للموقع المختار:'],
+ lab_wind:['Wind 50 m','رياح 50م'], lab_temp:['Temperature','حرارة'],
+ lab_ph:['Values separated by commas, spaces or new lines… e.g. 12.5, 14.2, 9.8, 16.1','قيم مفصولة بفواصل أو مسافات أو أسطر… مثال: 12.5, 14.2, 9.8, 16.1'],
+ lab_csv:['Upload CSV','رفع CSV'], lab_run:['Run analysis','ابدأ التحليل'],
+ lab_res:['Analysis results','نتائج التحليل'], lab_chart:['Series vs mean (±1σ)','السلسلة مقابل المتوسط (±1σ)'], lab_notes:['Notes & observations','ملاحظات وتوصيات'],
+ est_t:['Output estimator','حاسبة الإنتاج'], est_sub:['Turns the mean of your data into electricity using physical formulas.','بتحوّل متوسط بياناتك لكهرباء بمعادلات فيزيائية.'],
+ est_type:['Your data is','بياناتك عبارة عن'], est_ghi:['Solar irradiance (kWh/m²/day)','إشعاع شمسي (kWh/m²/يوم)'], est_wind:['Wind speed (m/s)','سرعة رياح (م/ث)'], est_power:['Power output (kW)','قدرة خارجة (kW)'],
+ est_area:['Panel area (m²)','مساحة الألواح (م²)'], est_eff:['Panel efficiency (%)','كفاءة الألواح (%)'], est_hours:['Hours of operation / day','ساعات التشغيل / يوم'],
+ est_price:['Energy price (EGP/kWh)','سعر الطاقة (جنيه/kWh)'], est_home:['Home use (kWh/day)','استهلاك البيت (kWh/يوم)'], est_calc:['Calculate','احسب'],
+ foot:['Climate data © NASA POWER · Estimates only, verify on site','بيانات المناخ © NASA POWER · تقديرات فقط، تحقق من الموقع']
+};
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.body.classList.toggle('ar', lang === 'ar');
+  document.querySelectorAll('[data-k]').forEach(el => { const v = S[el.dataset.k]; if (v) el.innerHTML = v[lang === 'ar' ? 1 : 0]; });
+  document.querySelectorAll('[data-kph]').forEach(el => { const v = S[el.dataset.kph]; if (v) el.placeholder = v[lang === 'ar' ? 1 : 0]; });
+  $('lang-toggle').textContent = lang === 'en' ? '🌐 عربي' : '🌐 English';
+  onModeChange(); fillGov(); onEstType(true);
+}
+function toggleLang() {
+  lang = lang === 'en' ? 'ar' : 'en'; applyLang();
+  if (state.model) renderResults();
+  if (labState.dna) { renderLab(); if ($('est-out').style.display !== 'none') calcLabOutput(); }
+}
+function showTab(t) {
+  ['site','lab'].forEach(x => { $('tab-' + x).classList.toggle('active', x === t); $('tabbtn-' + x).classList.toggle('active', x === t); });
+  if (t === 'site' && MapUI.leaflet) setTimeout(() => MapUI.leaflet.invalidateSize(), 50);
+}
+function onModeChange() {
+  $('d-val-label').textContent = $('d-mode').value === 'bill' ? tr('Monthly electricity bill (EGP)', 'فاتورة الكهرباء الشهرية (جنيه)') : tr('Energy use (kWh/day)', 'الاستهلاك (kWh/يوم)');
+}
+function setStatus(kind, msg) {
+  const el = $('status'); el.className = 'status' + (kind ? ' ' + kind : '');
+  el.innerHTML = kind === 'loading' ? '<span class="spinner"></span><span>' + msg + '</span>' : (msg || '');
+}
+
+/* ───────── governorates ───────── */
+const GOVS = [
+ ['Cairo','القاهرة',30.04,31.24],['Giza','الجيزة',30.01,31.21],['Alexandria','الإسكندرية',31.20,29.92],['Beheira','البحيرة',31.03,30.47],
+ ['Kafr El-Sheikh','كفر الشيخ',31.11,30.94],['Dakahlia','الدقهلية',31.04,31.38],['Gharbia','الغربية',30.79,31.00],['Monufia','المنوفية',30.55,31.01],
+ ['Qalyubia','القليوبية',30.47,31.18],['Sharqia','الشرقية',30.59,31.50],['Damietta','دمياط',31.42,31.82],['Port Said','بورسعيد',31.27,32.30],
+ ['Ismailia','الإسماعيلية',30.60,32.27],['Suez','السويس',29.97,32.55],['North Sinai','شمال سيناء',31.13,33.80],['South Sinai','جنوب سيناء',28.24,33.62],
+ ['Fayoum','الفيوم',29.31,30.84],['Beni Suef','بني سويف',29.07,31.10],['Minya','المنيا',28.11,30.75],['Asyut','أسيوط',27.18,31.18],
+ ['Sohag','سوهاج',26.56,31.70],['Qena','قنا',26.16,32.72],['Luxor','الأقصر',25.69,32.64],['Aswan','أسوان',24.09,32.90],
+ ['Red Sea','البحر الأحمر',27.26,33.81],['New Valley','الوادي الجديد',25.45,30.55],['Matrouh','مطروح',31.35,27.24]
+];
+function fillGov() {
+  const sel = $('gov'); const cur = sel.value;
+  sel.innerHTML = '<option value="">' + tr('Quick pick: governorate', 'اختيار سريع: محافظة') + '</option>' +
+    GOVS.map((g, i) => `<option value="${i}">${lang === 'ar' ? g[1] : g[0]}</option>`).join('');
+  sel.value = cur;
+}
+function pickGov() { const i = $('gov').value; if (i === '') return; const g = GOVS[i]; setLocation(g[2], g[3], true, 9); }
+/* ───────── MAP ───────── */
+const MapUI = { provider: 'osm', leaflet: null, lmarker: null, gmap: null, gmarker: null, gReady: false, gLoading: false };
+const state = { model: null, daily: null, dailyKey: '', charts: {} };
+
+function pinIcon() { return L.divIcon({ className: 'pin', html: '<div class="pin-dot"></div>', iconSize: [22, 22], iconAnchor: [11, 22] }); }
+
+function initLeaflet() {
+  if (typeof L === 'undefined') { $('map-leaflet').innerHTML = '<p style="padding:20px">' + tr('Map library failed to load. Enter coordinates manually.', 'مكتبة الخريطة معملتش تحميل. أدخل الإحداثيات يدوياً.') + '</p>'; return; }
+  const map = L.map('map-leaflet').setView([27.0, 30.5], 6);
+  const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, attribution: 'Imagery © Esri' });
+  const street = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
+  sat.addTo(map);
+  L.control.layers({ 'Satellite': sat, 'Street': street }).addTo(map);
+  map.on('click', e => setLocation(e.latlng.lat, e.latlng.lng, false));
+  MapUI.leaflet = map;
+}
+
+function setLocation(lat, lon, pan, zoom) {
+  lat = +lat; lon = +lon;
+  if (!isFinite(lat) || !isFinite(lon)) return;
+  $('lat').value = lat.toFixed(5); $('lon').value = lon.toFixed(5);
+  placeMarker(lat, lon, pan, zoom);
+}
+function placeMarker(lat, lon, pan, zoom) {
+  if (MapUI.leaflet) {
+    if (!MapUI.lmarker) {
+      MapUI.lmarker = L.marker([lat, lon], { icon: pinIcon(), draggable: true }).addTo(MapUI.leaflet);
+      MapUI.lmarker.on('dragend', () => { const p = MapUI.lmarker.getLatLng(); setLocation(p.lat, p.lng, false); });
+    } else MapUI.lmarker.setLatLng([lat, lon]);
+    if (pan) MapUI.leaflet.setView([lat, lon], zoom || Math.max(MapUI.leaflet.getZoom(), 10));
+  }
+  if (MapUI.gmap && window.google) {
+    const pos = { lat, lng: lon };
+    if (!MapUI.gmarker) {
+      MapUI.gmarker = new google.maps.Marker({ position: pos, map: MapUI.gmap, draggable: true });
+      MapUI.gmarker.addListener('dragend', e => setLocation(e.latLng.lat(), e.latLng.lng(), false));
+    } else MapUI.gmarker.setPosition(pos);
+    if (pan) { MapUI.gmap.setCenter(pos); MapUI.gmap.setZoom(zoom || Math.max(MapUI.gmap.getZoom(), 10)); }
+  }
+}
+function onCoordInput() {
+  const lat = parseFloat($('lat').value), lon = parseFloat($('lon').value);
+  if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) placeMarker(lat, lon, true);
+}
+
+/* provider switch */
+function setProvider(p) {
+  if (p === 'google') {
+    const key = getGKey();
+    $('gkey-box').classList.add('show');
+    if (key) { $('gkey').value = key; loadGoogle(key); } else { $('prov-g').classList.remove('on'); return; }
+  } else {
+    MapUI.provider = 'osm';
+    $('prov-osm').classList.add('on'); $('prov-g').classList.remove('on');
+    $('map-leaflet').style.display = 'block'; $('map-google').style.display = 'none';
+    if (MapUI.leaflet) setTimeout(() => MapUI.leaflet.invalidateSize(), 50);
+  }
+}
+function getGKey() { try { return localStorage.getItem('edna_gkey') || ''; } catch (e) { return ''; } }
+function saveGKey() {
+  const k = $('gkey').value.trim(); if (!k) return;
+  try { localStorage.setItem('edna_gkey', k); } catch (e) {}
+  loadGoogle(k);
+}
+function loadGoogle(key) {
+  if (MapUI.gLoading) return;
+  const show = () => {
+    MapUI.provider = 'google';
+    $('prov-g').classList.add('on'); $('prov-osm').classList.remove('on');
+    $('map-leaflet').style.display = 'none'; $('map-google').style.display = 'block';
+    if (!MapUI.gmap) {
+      MapUI.gmap = new google.maps.Map($('map-google'), { center: { lat: 27, lng: 30.5 }, zoom: 6, mapTypeId: 'hybrid', streetViewControl: false });
+      MapUI.gmap.addListener('click', e => setLocation(e.latLng.lat(), e.latLng.lng(), false));
+    }
+    const lat = parseFloat($('lat').value), lon = parseFloat($('lon').value);
+    if (isFinite(lat) && isFinite(lon)) placeMarker(lat, lon, true);
+  };
+  if (window.google && window.google.maps) { show(); return; }
+  MapUI.gLoading = true;
+  window.__gmReady = () => { MapUI.gLoading = false; MapUI.gReady = true; show(); };
+  window.gm_authFailure = () => {
+    MapUI.gLoading = false; setProvider('osm');
+    setStatus('warn', tr('Google Maps rejected the key (check billing/APIs). Using free satellite map instead.', 'جوجل رفضت المفتاح (راجع الفوترة والـ APIs). بنستخدم الخريطة المجانية.'));
+  };
+  const s = document.createElement('script');
+  s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) + '&callback=__gmReady&loading=async';
+  s.async = true;
+  s.onerror = () => { MapUI.gLoading = false; setStatus('warn', tr('Could not load Google Maps. Using free map.', 'مقدرناش نحمّل جوجل ماب. بنستخدم الخريطة المجانية.')); };
+  document.head.appendChild(s);
+}
+
+/* search */
+async function searchPlace() {
+  const q = $('place-q').value.trim(); if (!q) return;
+  try {
+    if (MapUI.provider === 'google' && window.google && google.maps) {
+      new google.maps.Geocoder().geocode({ address: q }, (r, st) => {
+        if (st === 'OK' && r[0]) { const p = r[0].geometry.location; setLocation(p.lat(), p.lng(), true, 12); }
+        else setStatus('warn', tr('Place not found.', 'المكان مش موجود.'));
+      });
+      return;
+    }
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=' + lang + '&q=' + encodeURIComponent(q));
+    const j = await r.json();
+    if (j[0]) { setStatus('', ''); setLocation(j[0].lat, j[0].lon, true, 12); }
+    else setStatus('warn', tr('Place not found.', 'المكان مش موجود.'));
+  } catch (e) { setStatus('warn', tr('Search failed. Click the map instead.', 'البحث فشل. اضغط على الخريطة بدلاً منه.')); }
+}
+function useMyLocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(p => setLocation(p.coords.latitude, p.coords.longitude, true, 12),
+    () => setStatus('warn', tr('Location permission denied.', 'تم رفض إذن الموقع.')));
+}
+/* ───────── NASA POWER ───────── */
+const CLIM_FULL = 'ALLSKY_SFC_SW_DWN,ALLSKY_SFC_SW_DNI,T2M,T2M_MAX,WS10M,WS50M,PS,RH2M,PRECTOTCORR';
+const CLIM_CORE = 'ALLSKY_SFC_SW_DWN,T2M,WS10M,WS50M';
+const clean = v => (v === undefined || v === null || v <= -998) ? null : v;
+
+async function fetchClimatology(lat, lon) {
+  let j = null, lastErr = null;
+  for (const params of [CLIM_FULL, CLIM_CORE]) {
+    const r = await fetch(`https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=${params}&community=RE&longitude=${lon}&latitude=${lat}&format=JSON`);
+    if (r.ok) { j = await r.json(); break; }
+    lastErr = r.status;
+  }
+  if (!j) throw new Error('NASA POWER HTTP ' + lastErr);
+  return parseClimatology(j);
+}
+function parseClimatology(j) {
+  const P = j.properties.parameter;
+  const mon = k => P[k] ? MONTHS.map(m => clean(P[k][m])) : null;
+  const ann = k => P[k] ? clean(P[k].ANN) : null;
+  const elev = (j.geometry && j.geometry.coordinates && isFinite(j.geometry.coordinates[2])) ? j.geometry.coordinates[2] : 0;
+  const c = { elev, ghi: mon('ALLSKY_SFC_SW_DWN'), dni: mon('ALLSKY_SFC_SW_DNI'), t2m: mon('T2M'), tmax: mon('T2M_MAX'),
+    ws10: mon('WS10M'), ws50: mon('WS50M'), ps: mon('PS'), rh: mon('RH2M'), rain: mon('PRECTOTCORR'), ann: {} };
+  if (!c.ghi || c.ghi.some(v => v === null)) throw new Error('No solar data returned for this point');
+  if (!c.t2m || c.t2m.some(v => v === null)) throw new Error('No temperature data returned for this point');
+  const fill = (arr, def) => arr ? arr.map(v => v === null ? def : v) : null;
+  if (!c.tmax || c.tmax.some(v => v === null)) c.tmax = c.t2m.map(t => t + 7);
+  const psDef = 101.325 * Math.exp(-elev / 8434);
+  c.ps = c.ps ? fill(c.ps, psDef) : c.t2m.map(() => psDef);
+  c.ws50 = fill(c.ws50, null); c.ws10 = fill(c.ws10, null);
+  if (c.ws50 && c.ws50.some(v => v === null)) c.ws50 = null;
+  if (c.ws10 && c.ws10.some(v => v === null)) c.ws10 = null;
+  if (c.dni && c.dni.some(v => v === null)) c.dni = null;
+  c.ann.ghi = ann('ALLSKY_SFC_SW_DWN') ?? avg(c.ghi);
+  c.ann.dni = c.dni ? (ann('ALLSKY_SFC_SW_DNI') ?? avg(c.dni)) : null;
+  c.ann.t2m = ann('T2M') ?? avg(c.t2m);
+  c.ann.ws50 = c.ws50 ? (ann('WS50M') ?? avg(c.ws50)) : null;
+  c.ann.ws10 = c.ws10 ? (ann('WS10M') ?? avg(c.ws10)) : null;
+  c.ann.rain = c.rain && c.rain.every(v => v !== null) ? (ann('PRECTOTCORR') ?? avg(c.rain)) * 365 : null;
+  c.ann.rh = c.rh && c.rh.every(v => v !== null) ? avg(c.rh) : null;
+  return c;
+}
+async function fetchDaily(lat, lon) {
+  const y = new Date().getFullYear() - 1;
+  const r = await fetch(`https://power.larc.nasa.gov/api/temporal/daily/point?parameters=ALLSKY_SFC_SW_DWN,WS50M,T2M&community=RE&longitude=${lon}&latitude=${lat}&start=${y}0101&end=${y}1231&format=JSON`);
+  if (!r.ok) throw new Error('NASA daily HTTP ' + r.status);
+  return parseDaily(await r.json(), y);
+}
+function parseDaily(j, year) {
+  const P = j.properties.parameter;
+  const keys = Object.keys(P.ALLSKY_SFC_SW_DWN || P.T2M || {}).sort();
+  const col = n => keys.map(k => P[n] ? clean(P[n][k]) : null);
+  return { year, dates: keys, ghi: col('ALLSKY_SFC_SW_DWN'), ws: col('WS50M'), t: col('T2M') };
+}
+
+/* ───────── PURE MODEL ───────── */
+function crf(d, n) { return d === 0 ? 1 / n : d * Math.pow(1 + d, n) / (Math.pow(1 + d, n) - 1); }
+
+function econ(items, annualKWh, valuedKWh, c) {
+  const capex = sum(items.map(i => i.cost));
+  const om = sum(items.map(i => i.cost * i.om));
+  const annualCost = sum(items.map(i => i.cost * crf(c.disc, i.life))) + om;
+  let avgD = 0; for (let y = 1; y <= 25; y++) avgD += Math.pow(c.degr, y - 1); avgD /= 25;
+  const lcoe = valuedKWh > 0 ? annualCost / (valuedKWh * avgD) : Infinity;
+  let cum = -capex, prev = cum, payback = null, npv = -capex; const flow = [cum];
+  for (let y = 1; y <= 25; y++) {
+    let cash = valuedKWh * Math.pow(c.degr, y - 1) * c.price * Math.pow(1 + c.esc, y - 1) - om;
+    items.forEach(i => { if (i.life < 20 && y % i.life === 0) cash -= i.cost * 0.7; });
+    prev = cum; cum += cash; flow.push(cum); npv += cash / Math.pow(1 + c.disc, y);
+    if (payback === null && cum >= 0) payback = (y - 1) + (-prev) / (cum - prev);
+  }
+  return { capex, lcoe, payback, flow, npv, net25: cum };
+}
+
+function pvYield(clim, ctx) {
+  return clim.ghi.map((g, i) => {
+    const cell = (clim.t2m[i] + clim.tmax[i]) / 2 + 20;
+    const der = 1 - 0.0035 * Math.max(0, cell - 25);
+    return g * ctx.tiltGain * DAYS[i] * ctx.pr * der;
+  });
+}
+function windCF(v, rho) {
+  if (!(v > 0.2)) return 0;
+  let cf = 0; const dv = 0.25, ci = 3, ra = 12, co = 25;
+  for (let x = dv / 2; x < 30; x += dv) {
+    const f = (Math.PI * x / (2 * v * v)) * Math.exp(-Math.PI * x * x / (4 * v * v));
+    let p = 0;
+    if (x >= ci && x < ra) p = (Math.pow(x, 3) - Math.pow(ci, 3)) / (Math.pow(ra, 3) - Math.pow(ci, 3)); else if (x >= ra && x <= co) p = 1;
+    cf += p * f * dv;
+  }
+  return Math.min(0.6, cf * Math.min(1.15, rho / 1.225) * 0.88);
+}
+function computeDNA(raw) {
+  const values = raw.filter(v => v !== null && isFinite(v)); const n = values.length;
+  if (n < 2) return null;
+  const mean = avg(values);
+  const variance = sum(values.map(v => (v - mean) ** 2)) / n, std = Math.sqrt(variance);
+  const cv = mean !== 0 ? std / Math.abs(mean) : 0;
+  let ramp = 0; for (let i = 1; i < n; i++) ramp = Math.max(ramp, Math.abs(values[i] - values[i - 1]));
+  const N = Math.min(n, 2048); let maxAmp = 0, k0 = 0;
+  for (let k = 1; k <= Math.floor(N / 2); k++) {
+    let re = 0, im = 0;
+    for (let t = 0; t < N; t++) { const a = 2 * Math.PI * k * t / N, x = values[t] - mean; re += x * Math.cos(a); im -= x * Math.sin(a); }
+    const amp = Math.hypot(re, im); if (amp > maxAmp) { maxAmp = amp; k0 = k; }
+  }
+  return { n, mean, variance, std, cv, ramp, stabIdx: 1 / (1 + cv * cv), domFreqIdx: k0, period: k0 ? N / k0 : null, values };
+}
+function longestRun(flags) { let best = 0, cur = 0; flags.forEach(f => { cur = f ? cur + 1 : 0; if (cur > best) best = cur; }); return best; }
+function pearson(a, b) {
+  const x = [], y = [];
+  a.forEach((v, i) => { if (v !== null && b[i] !== null) { x.push(v); y.push(b[i]); } });
+  if (x.length < 5) return 0;
+  const mx = avg(x), my = avg(y); let sxy = 0, sxx = 0, syy = 0;
+  x.forEach((v, i) => { sxy += (v - mx) * (y[i] - my); sxx += (v - mx) ** 2; syy += (y[i] - my) ** 2; });
+  return sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : 0;
+}
+
+function buildModel(ctx, clim, daily) {
+  const c = { price: ctx.price, esc: ctx.esc, disc: ctx.disc, degr: 1 };
+  const off = ctx.supply === 'off';
+  const D = ctx.targetDay, T = D * 365.25, Dm = DAYS.map(d => D * d);
+  const hasWind = !!(clim.ws50);
+  const M = { ctx, clim, daily, off, D, T, Dm };
+
+  /* PV resource */
+  const ypv = pvYield(clim, ctx), Ypv = sum(ypv);
+  M.ypv = ypv; M.Ypv = Ypv;
+
+  /* wind resource */
+  let alpha = 0.15, vhub = null, zw = null, Zw = 0, cfAnn = 0, rhoAvg = 1.2, vhubAnn = null;
+  if (hasWind) {
+    if (clim.ws10 && clim.ann.ws10 > 0 && clim.ann.ws50 > 0) alpha = clamp(Math.log(clim.ann.ws50 / clim.ann.ws10) / Math.log(5), 0.1, 0.4);
+    const k = Math.pow(ctx.hub / 50, alpha);
+    vhub = clim.ws50.map(v => v * k);
+    const rho = clim.ps.map((p, i) => p * 1000 / (287.05 * (clim.t2m[i] + 273.15)));
+    rhoAvg = avg(rho);
+    zw = vhub.map((v, i) => windCF(v, rho[i]) * 24 * DAYS[i]);
+    Zw = sum(zw); cfAnn = Zw / (8766);
+    vhubAnn = avg(vhub);
+  }
+  Object.assign(M, { alpha, vhub, zw, Zw, cfAnn, rhoAvg, vhubAnn, hasWind });
+
+  /* stability from NASA daily series */
+  let dna = { pv: null, wind: null }, st = { pv: 1, wind: 3, joint: 1 }, corr = null, cfDaily = null;
+  if (daily && daily.ghi.filter(v => v !== null).length > 200) {
+    dna.pv = computeDNA(daily.ghi);
+    const mg = avg(daily.ghi.filter(v => v !== null));
+    const pvLow = daily.ghi.map(v => v !== null && v < 0.5 * mg);
+    st.pv = longestRun(pvLow);
+    if (hasWind && daily.ws.filter(v => v !== null).length > 200) {
+      const k = Math.pow(ctx.hub / 50, alpha);
+      cfDaily = daily.ws.map(v => v === null ? null : windCF(v * k, rhoAvg));
+      dna.wind = computeDNA(cfDaily);
+      const wLow = cfDaily.map(v => v !== null && v < 0.04);
+      st.wind = longestRun(wLow);
+      st.joint = longestRun(pvLow.map((f, i) => f && wLow[i]));
+      corr = pearson(daily.ghi, daily.ws);
+    }
+  }
+  M.dna = dna; M.st = st; M.corr = corr; M.dailyOk = !!dna.pv;
+  const cvPV = dna.pv ? dna.pv.cv : 0.22, cvW = dna.wind ? dna.wind.cv : 0.6;
+  M.cvPV = cvPV; M.cvW = cvW;
+
+  const score = (res, eco, stab, fea) => ({ res, eco, stab, fea, total: 0.35 * res + 0.35 * eco + 0.15 * stab + 0.15 * fea });
+  const ecoScore = l => clamp((1.5 - l / ctx.price) / 1.2, 0, 1) * 100;
+  const stabScore = cv => clamp(1 - cv / 0.8, 0, 1) * 100;
+  const budFit = capex => ctx.budget > 0 ? Math.min(1, ctx.budget / capex) : 1;
+  const co2 = kwh => kwh * ctx.co2 / 1000;
+  const monthsFrom = kWh => DAYS.map(d => kWh * d / 365.25);
+
+  /* ── PV ── */
+  const pv = { id: 'pv', icon: '☀️', en: 'Solar PV', ar: 'طاقة شمسية (PV)', status: 'poor' };
+  {
+    let kWp = off ? Math.max(...Dm.map((d, i) => d / ypv[i])) : T / Ypv;
+    const panels = Math.max(1, Math.ceil(kWp * 1000 / ctx.panelW)); kWp = panels * ctx.panelW / 1000;
+    const batt = off ? D * (0.5 + clamp(st.pv, 0, 2)) / 0.8 : 0;
+    const gen = Ypv * kWp; const valued = Math.min(gen, T);
+    const cpv = ctx.cPV * (off ? 1.15 : 1) * kWp;
+    const items = [{ cost: cpv * 0.85, life: 25, om: 0.01 }, { cost: cpv * 0.15, life: 12, om: 0 }];
+    if (batt > 0) items.push({ cost: batt * ctx.cBatt, life: 10, om: 0.01 });
+    const e = econ(items, gen, valued, { ...c, degr: 0.995 });
+    const area = panels * ctx.panelArea * (ctx.mount === 'roof' ? 1.35 : 2.4);
+    const areaFit = ctx.area > 0 ? Math.min(1, ctx.area / area) : 1;
+    Object.assign(pv, { kW: kWp, panels, inverter: Math.ceil(kWp / 1.2), batt, area, areaFit, annualKWh: gen, valued, coverage: 100, capex: e.capex, lcoe: e.lcoe, payback: e.payback, npv: e.npv, flow: e.flow, co2: co2(valued),
+      cf: gen / (kWp * 8766), specYield: gen / kWp, gen: { pv: ypv.map(y => y * kWp) }, eligible: true,
+      parts: score(clamp((clim.ann.ghi - 3.5) / 3, 0, 1) * 100, ecoScore(e.lcoe), stabScore(cvPV), Math.min(areaFit, budFit(e.capex)) * 100) });
+    pv.resEn = `GHI ${fmt(clim.ann.ghi, 2)} kWh/m²/day · ${fmt(pv.specYield)} kWh/kWp/yr`;
+    pv.resAr = `إشعاع ${fmt(clim.ann.ghi, 2)} kWh/م²/يوم · ${fmt(pv.specYield)} kWh/kWp/سنة`;
+  }
+
+  /* ── WIND ── */
+  const wind = { id: 'wind', icon: '💨', en: 'Wind turbine', ar: 'توربين رياح', status: 'na' };
+  if (!hasWind) { wind.eligible = false; wind.noteEn = 'NASA returned no wind data for this point.'; wind.noteAr = 'NASA مرجعتش بيانات رياح للنقطة دي.'; wind.status = 'na'; }
+  else {
+    let kW = off ? Math.max(...Dm.map((d, i) => zw[i] > 0 ? d / zw[i] : 1e9)) : (Zw > 0 ? T / Zw : 1e9);
+    let n, kWact, unit;
+    if (kW > 1e6) { n = 0; kWact = 0; }
+    else if (kW <= 20) { n = 1; kWact = Math.max(1, Math.ceil(kW * 2) / 2); unit = kWact; }
+    else if (kW <= 200) { unit = 10; n = Math.ceil(kW / unit); kWact = n * unit; }
+    else { unit = 2000; n = Math.ceil(kW / unit); kWact = n * unit; }
+    const aPerKW = 1000 / (0.5 * rhoAvg * 0.40 * 1728);
+    const diam = n ? Math.sqrt(4 * aPerKW * unit / Math.PI) : 0;
+    const batt = off ? D * (0.25 + clamp(st.wind, 0, 3)) / 0.8 : 0;
+    const gen = Zw * kWact; const valued = Math.min(gen, T);
+    const cw = ctx.cWind * (kWact > 200 ? 0.55 : 1) * kWact;
+    const items = [{ cost: cw, life: 20, om: 0.03 }];
+    if (batt > 0) items.push({ cost: batt * ctx.cBatt, life: 10, om: 0.01 });
+    const e = n ? econ(items, gen, valued, c) : { capex: Infinity, lcoe: Infinity, payback: null, npv: -Infinity, flow: [], net25: 0 };
+    const area = n > 1 ? n * 35 * diam * diam : 0;
+    const areaFit = (ctx.mount === 'ground' && ctx.area > 0 && area > 0) ? Math.min(1, ctx.area / area) : (ctx.mount === 'roof' ? 0.5 : 1);
+    Object.assign(wind, { eligible: n > 0, kW: kWact, n, unit, diam, batt, area, areaFit, annualKWh: gen, valued, coverage: 100, capex: e.capex, lcoe: e.lcoe, payback: e.payback, npv: e.npv, flow: e.flow, co2: co2(valued),
+      cf: cfAnn, gen: { wind: zw.map(z => z * kWact) },
+      parts: score(clamp(cfAnn / 0.4, 0, 1) * 100, ecoScore(e.lcoe), stabScore(cvW), Math.min(areaFit, budFit(e.capex)) * 100) });
+    wind.resEn = `${fmt(vhubAnn, 1)} m/s @${ctx.hub} m (${fmt(clim.ann.ws50, 1)} @50 m) · CF ${fmt(cfAnn * 100)}%`;
+    wind.resAr = `${fmt(vhubAnn, 1)} م/ث عند ${ctx.hub} م (${fmt(clim.ann.ws50, 1)} عند 50 م) · معامل سعة ${fmt(cfAnn * 100)}%`;
+    if (cfAnn < 0.12) { wind.noteEn = 'Wind is too weak here for good economics (CF < 12%).'; wind.noteAr = 'الرياح ضعيفة هنا للجدوى (معامل السعة أقل من 12%).'; }
+    else if (n === 1 && kWact < 20) { wind.noteEn = 'Small turbines vary a lot in quality: ask for a certified power curve and measure on site before buying.'; wind.noteAr = 'توربينات الرياح الصغيرة بتتفاوت جداً في الجودة: اطلب منحنى قدرة معتمد وقس الرياح في الموقع قبل الشراء.'; }
+  }
+
+  /* ── BIOGAS ── */
+  const bio = { id: 'bio', icon: '🐄', en: 'Biogas', ar: 'بيوجاز', status: 'data' };
+  {
+    const tf = clamp(0.5 + 0.5 * (clim.ann.t2m - 15) / 10, 0.4, 1);
+    const perHeadKWh = 0.5 * 1.8 * tf * 0.92;           // kWh_e/day/head
+    const m3 = ctx.heads * 0.5 * tf + ctx.residue * 250 / 365 * tf;
+    const kWhDay = m3 * 1.8 * 0.92;
+    const headsNeeded = D / perHeadKWh;
+    bio.headsNeeded = headsNeeded; bio.tf = tf; bio.m3 = m3;
+    bio.resEn = `${fmt(tf * 100)}% digester temperature factor · ~${fmt(perHeadKWh, 2)} kWh/head/day`;
+    bio.resAr = `معامل حرارة الهاضم ${fmt(tf * 100)}% · ~${fmt(perHeadKWh, 2)} kWh/رأس/يوم`;
+    if (m3 > 0) {
+      const gen = kWhDay * 365.25, valued = Math.min(gen, T), kW = Math.max(1, Math.ceil(kWhDay / 20));
+      const e = econ([{ cost: kW * ctx.cBio, life: 15, om: 0.06 }], gen, valued, c);
+      const cover = Math.min(1, gen / T);
+      Object.assign(bio, { eligible: true, kW, annualKWh: gen, valued, coverage: cover * 100, capex: e.capex, lcoe: e.lcoe, payback: e.payback, npv: e.npv, flow: e.flow, co2: co2(valued), cf: gen / (kW * 8766),
+        area: 0, gen: { bio: monthsFrom(gen) },
+        parts: score(cover * 100 * tf, ecoScore(e.lcoe), 94, Math.min(cover, budFit(e.capex)) * 100) });
+    } else {
+      bio.eligible = false; bio.coverage = 0;
+      bio.noteEn = `Needs feedstock. For ${fmt(ctx.coverage * 100)}% of your target you would need about ${fmt(headsNeeded * ctx.coverage)} cattle/buffalo (or equivalent residues).`;
+      bio.noteAr = `محتاج مادة خام. لتغطية ${fmt(ctx.coverage * 100)}% من هدفك تحتاج حوالي ${fmt(headsNeeded * ctx.coverage)} رأس ماشية/جاموس (أو مخلفات مكافئة).`;
+    }
+  }
+
+  /* ── MICRO-HYDRO ── */
+  const hyd = { id: 'hydro', icon: '💧', en: 'Micro-hydro', ar: 'مائية صغيرة', status: 'data' };
+  {
+    const Q = ctx.flow / 1000, H = ctx.head;
+    hyd.resEn = H > 0 ? `Head ${fmt(H, 1)} m · flow ${fmt(ctx.flow)} L/s` : 'Needs a water drop (head) and flow';
+    hyd.resAr = H > 0 ? `منسوب ${fmt(H, 1)} م · تدفق ${fmt(ctx.flow)} لتر/ث` : 'يحتاج فرق منسوب مياه وتدفق';
+    if (Q > 0 && H > 0) {
+      const kW = 9.81 * Q * H * 0.6, gen = kW * 8766 * 0.85, valued = Math.min(gen, T), cover = Math.min(1, gen / T);
+      const e = econ([{ cost: kW * ctx.cHydro, life: 30, om: 0.02 }], gen, valued, c);
+      Object.assign(hyd, { eligible: true, kW, annualKWh: gen, valued, coverage: cover * 100, capex: e.capex, lcoe: e.lcoe, payback: e.payback, npv: e.npv, flow: e.flow, co2: co2(valued), cf: 0.85, area: 0,
+        gen: { hydro: monthsFrom(gen) }, parts: score(cover * 100, ecoScore(e.lcoe), 81, Math.min(cover, budFit(e.capex)) * 100) });
+    } else {
+      hyd.eligible = false; hyd.coverage = 0;
+      hyd.noteEn = H > 0 ? `Needs flow. At ${fmt(H, 1)} m head you would need about ${fmt(D * ctx.coverage / (24 * 0.85 * 9.81 * H * 0.6) * 1000)} L/s for your target.` : 'Egypt is mostly flat; this only works where a canal/drain/regulator gives a real water drop. Enter head and flow if you have them.';
+      hyd.noteAr = H > 0 ? `محتاج تدفق. عند منسوب ${fmt(H, 1)} م تحتاج حوالي ${fmt(D * ctx.coverage / (24 * 0.85 * 9.81 * H * 0.6) * 1000)} لتر/ث لهدفك.` : 'مصر أغلبها مستوية؛ ده بيشتغل بس لو في ترعة/مصرف/هويس بيدي فرق منسوب حقيقي. أدخل المنسوب والتدفق لو متاحين.';
+    }
+  }
+
+  /* ── HYBRID (off-grid only) ── */
+  const hyb = { id: 'hybrid', icon: '⚡', en: 'Hybrid PV + Wind + battery', ar: 'هجين (شمس + رياح + بطارية)', status: 'na', eligible: false };
+  if (off && hasWind && cfAnn >= 0.12 && wind.eligible) {
+    let best = null;
+    for (let w = 0.1; w <= 0.9001; w += 0.1) {
+      const g1 = ypv.map((y, i) => (1 - w) * T / Ypv * y + w * T / Zw * zw[i]);
+      const k = Math.max(1, ...Dm.map((d, i) => d / g1[i]));
+      const pvK = k * (1 - w) * T / Ypv, wK = k * w * T / Zw;
+      const batt = D * (0.5 * (1 - w) + 0.25 * w + clamp(st.joint, 0, 2)) / 0.8;
+      const cost = pvK * ctx.cPV * 1.15 + wK * ctx.cWind * (wK > 200 ? 0.55 : 1) + batt * ctx.cBatt;
+      if (!best || cost < best.cost) best = { w, k, pvK, wK, batt, cost };
+    }
+    const panels = Math.ceil(best.pvK * 1000 / ctx.panelW), pvK = panels * ctx.panelW / 1000;
+    const wK = Math.max(1, Math.ceil(best.wK * 2) / 2);
+    const gen = pvK * Ypv + wK * Zw, valued = Math.min(gen, T);
+    const pvc = pvK * ctx.cPV * 1.15, wc = wK * ctx.cWind * (wK > 200 ? 0.55 : 1);
+    const e = econ([{ cost: pvc * 0.85, life: 25, om: 0.01 }, { cost: pvc * 0.15, life: 12, om: 0 }, { cost: wc, life: 20, om: 0.03 }, { cost: best.batt * ctx.cBatt, life: 10, om: 0.01 }], gen, valued, { ...c, degr: 0.998 });
+    const rho = corr === null ? 0 : corr, a = 1 - best.w, b = best.w;
+    const cvH = Math.sqrt(Math.max(0, a * a * cvPV * cvPV + b * b * cvW * cvW + 2 * a * b * rho * cvPV * cvW));
+    const area = panels * ctx.panelArea * (ctx.mount === 'roof' ? 1.35 : 2.4);
+    const areaFit = ctx.area > 0 ? Math.min(1, ctx.area / area) : 1;
+    Object.assign(hyb, { eligible: true, status: 'poor', kW: pvK + wK, pvK, wK, panels, batt: best.batt, share: best.w, annualKWh: gen, valued, coverage: 100, capex: e.capex, lcoe: e.lcoe, payback: e.payback, npv: e.npv, flow: e.flow,
+      co2: co2(valued), area, areaFit, gen: { pv: ypv.map(y => y * pvK), wind: zw.map(z => z * wK) }, cvH,
+      parts: score(a * pv.parts.res + b * wind.parts.res, ecoScore(e.lcoe), stabScore(cvH), Math.min(areaFit, budFit(e.capex)) * 100) });
+    hyb.resEn = `${fmt(a * 100)}% PV / ${fmt(b * 100)}% wind · daily correlation ${corr === null ? 'n/a' : fmt(corr, 2)}`;
+    hyb.resAr = `${fmt(a * 100)}% شمس / ${fmt(b * 100)}% رياح · ارتباط يومي ${corr === null ? 'غير متاح' : fmt(corr, 2)}`;
+  } else if (!off) {
+    hyb.noteEn = 'Not needed in grid-connected mode: the grid already balances supply (net metering). Switch to off-grid to see it.';
+    hyb.noteAr = 'مش لازم في وضع الاتصال بالشبكة: الشبكة بتوازن العرض (net metering). غيّر لوضع معزول لتشوفه.';
+  } else {
+    hyb.noteEn = 'Wind is too weak or unavailable here, so a hybrid would not beat PV + battery.'; hyb.noteAr = 'الرياح ضعيفة أو غير متاحة هنا، فالهجين مش هيتفوق على الشمس + بطارية.';
+  }
+
+  /* ── ranking ── */
+  const techs = [pv, wind, hyb, bio, hyd];
+  techs.forEach(t => { if (t.eligible) { t.score = Math.round(t.parts.total); } else t.score = null; });
+  const ranked = techs.filter(t => t.eligible).sort((a, b) => b.score - a.score);
+  ranked.forEach((t, i) => { t.status = i === 0 ? 'best' : t.score >= 60 ? 'viable' : t.score >= 40 ? 'marginal' : 'poor'; if (t.parts.fea < 40 && t.status === 'viable') t.status = 'marginal'; });
+  const winner = ranked[0] || pv;
+  M.techs = techs; M.winner = winner;
+
+  /* mix: if winner covers < target, complete with PV */
+  M.mix = null;
+  if (winner.coverage < 99 && winner.id !== 'pv') {
+    const remT = T - winner.annualKWh, remKW = Math.max(0, remT / Ypv), panels = Math.ceil(remKW * 1000 / ctx.panelW);
+    M.mix = { pvKW: panels * ctx.panelW / 1000, panels, pvGen: ypv.map(y => y * panels * ctx.panelW / 1000), cost: panels * ctx.panelW / 1000 * ctx.cPV, pct: 100 - winner.coverage };
+  }
+
+  /* complementary (non-electric / utility-scale / not assessable) */
+  const tc = 4, stYield = clim.ann.ghi * 365.25 * ctx.tiltGain * 0.45;
+  M.comp = {
+    thermal: { perM2: stYield, tc, kWh: stYield * tc, egp: stYield * tc * ctx.price },
+    csp: clim.ann.dni ? { dni: clim.ann.dni * 365.25 } : null
+  };
+
+  /* hybrid complementarity */
+  M.complement = corr;
+  return M;
+}
+/* ───────── READ INPUTS ───────── */
+function readCtx() {
+  const n = id => parseFloat($(id).value);
+  const price = n('price') > 0 ? n('price') : 2.18;
+  const dv = n('d-val');
+  if (!(dv > 0)) throw new Error(tr('Enter your demand first.', 'أدخل الاستهلاك الأول.'));
+  const demandDay = $('d-mode').value === 'bill' ? dv / price / 30 : dv;
+  const coverage = clamp((n('cov') || 100) / 100, 0.3, 1);
+  const g = (id, d) => isFinite(n(id)) ? n(id) : d;
+  return {
+    demandDay, coverage, targetDay: demandDay * coverage, price, supply: $('supply').value,
+    area: g('area', 0), mount: $('mount').value, budget: g('budget', 0),
+    heads: g('heads', 0), residue: g('residue', 0), head: g('hhead', 0), flow: g('hflow', 0),
+    cPV: g('a-cpv', 16000), cWind: g('a-cwind', 100000), cBio: g('a-cbio', 70000), cHydro: g('a-chydro', 90000), cBatt: g('a-cbatt', 10000),
+    esc: g('a-esc', 5) / 100, disc: g('a-disc', 10) / 100, pr: clamp(g('a-pr', 80) / 100, 0.5, 0.95), tiltGain: 1 + g('a-tilt', 10) / 100,
+    hub: clamp(g('a-hub', 30), 10, 120), panelW: g('a-panel', 550), panelArea: 2.6, co2: g('a-co2', 0.5)
+  };
+}
+
+/* ───────── RUN ───────── */
+async function runAnalysis() {
+  const lat = parseFloat($('lat').value), lon = parseFloat($('lon').value);
+  if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { setStatus('error', tr('Pick a location on the map first.', 'اختار مكان على الخريطة الأول.')); return; }
+  let ctx; try { ctx = readCtx(); } catch (e) { setStatus('error', e.message); return; }
+  $('btn-analyze').disabled = true;
+  try {
+    setStatus('loading', tr('Fetching NASA POWER climate data for this point…', 'بنسحب بيانات مناخ NASA POWER للنقطة دي…'));
+    const clim = await fetchClimatology(lat, lon);
+    setStatus('loading', tr('Fetching daily series to measure stability…', 'بنسحب السلسلة اليومية لقياس الاستقرار…'));
+    let daily = null;
+    try { daily = await fetchDaily(lat, lon); state.daily = daily; state.dailyKey = lat + ',' + lon; } catch (e) { daily = null; }
+    state.model = buildModel(ctx, clim, daily); state.model.lat = lat; state.model.lon = lon;
+    setStatus(daily ? '' : 'warn', daily ? '' : tr('Daily series unavailable: stability uses typical values instead of measured ones.', 'السلسلة اليومية مش متاحة: الاستقرار بيستخدم قيم نموذجية بدل المقاسة.'));
+    renderResults();
+    $('site-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    console.error(e);
+    setStatus('error', tr('Could not get NASA POWER data (' + e.message + '). Check your internet connection and try again.', 'مقدرناش نجيب بيانات NASA POWER (' + e.message + '). راجع الإنترنت وجرّب تاني.'));
+  } finally { $('btn-analyze').disabled = false; }
+}
+
+/* ───────── RENDER ───────── */
+const chip = s => {
+  const m = { best: ['★ Best fit', '★ الأنسب'], viable: ['Viable', 'مناسب'], marginal: ['Marginal', 'هامشي'], poor: ['Weak fit', 'ضعيف'], data: ['Needs your input', 'محتاج بياناتك'], na: ['Not applicable', 'مش منطبق'], info: ['Complementary', 'مكمّل'] }[s];
+  return `<span class="chip ${s}">${tr(m[0], m[1])}</span>`;
+};
+const money = n => isFinite(n) ? fmtM(n) + ' ' + tr('EGP', 'جنيه') : '—';
+const pbText = p => p === null || p === undefined ? tr('> 25 yrs', '> 25 سنة') : fmt(p, 1) + ' ' + tr('yrs', 'سنة');
+const nm = t => tr(t.en, t.ar);
+
+function techCard(t, M) {
+  const ctx = M.ctx, best = t.status === 'best';
+  let body = '';
+  if (t.eligible) {
+    const rows = [
+      [tr('Resource', 'المورد'), tr(t.resEn, t.resAr)],
+      [tr('Required capacity', 'السعة المطلوبة'), t.id === 'hybrid' ? `${fmt(t.pvK, 1)} kWp + ${fmt(t.wK, 1)} kW` : `${fmt(t.kW, 1)} kW`],
+      [tr('Coverage of target', 'تغطية الهدف'), fmt(t.coverage) + '%'],
+      [tr('Annual output', 'الإنتاج السنوي'), fmt(t.annualKWh) + ' kWh'],
+      t.batt > 0 ? [tr('Battery', 'البطارية'), fmt(t.batt, 1) + ' kWh'] : null,
+      t.area > 0 ? [tr('Area', 'المساحة'), fmt(t.area) + ' m²'] : null,
+      [tr('CAPEX', 'التكلفة الاستثمارية'), money(t.capex)],
+      [tr('Cost per kWh', 'تكلفة الكيلووات'), fmt(t.lcoe, 2) + ' ' + tr('EGP', 'جنيه')],
+      [tr('Payback', 'فترة الاسترداد'), pbText(t.payback)]
+    ].filter(Boolean);
+    body = `<div class="score"><div class="n">${t.score}</div><div class="bar"><i style="width:${t.score}%"></i></div></div><div class="kv">${rows.map(r => `<span>${r[0]}</span><span>${r[1]}</span>`).join('')}</div>`;
+    const notes = [];
+    if (ctx.budget > 0 && t.capex > ctx.budget) notes.push(tr('Over your budget by ' + money(t.capex - ctx.budget) + '.', 'أعلى من ميزانيتك بـ ' + money(t.capex - ctx.budget) + '.'));
+    if (t.areaFit !== undefined && t.areaFit < 1 && t.area > 0 && ctx.area > 0) notes.push(tr('Needs ' + fmt(t.area) + ' m² but you have ' + fmt(ctx.area) + ' m².', 'محتاج ' + fmt(t.area) + ' م² وإنت عندك ' + fmt(ctx.area) + ' م².'));
+    if (t.noteEn) notes.push(tr(t.noteEn, t.noteAr));
+    if (notes.length) body += `<div class="note">${notes.join(' ')}</div>`;
+  } else {
+    body = `<div class="kv" style="margin-bottom:8px">${t.resEn ? `<span>${tr('Resource', 'المورد')}</span><span>${tr(t.resEn, t.resAr)}</span>` : ''}</div><div class="note" style="border:0;padding:0;margin:0">${tr(t.noteEn || '', t.noteAr || '')}</div>`;
+  }
+  return `<div class="tech ${best ? 'best' : ''} ${t.eligible ? '' : 'dim'}"><div class="tech-h"><b>${t.icon} ${nm(t)}</b>${chip(t.status)}</div>${body}</div>`;
+}
+
+function infoCards(M) {
+  const cl = M.clim, k = M.comp, ctx = M.ctx, out = [];
+  out.push(`<div class="tech dim"><div class="tech-h"><b>🔥 ${tr('Solar water heating', 'سخان شمسي')}</b>${chip('info')}</div>
+    <div class="kv"><span>${tr('Heat per m² collector', 'حرارة لكل م² مجمّع')}</span><span>${fmt(k.thermal.perM2)} kWh/yr</span>
+    <span>${tr('Typical ' + k.thermal.tc + ' m² system', 'سيستم نموذجي ' + k.thermal.tc + ' م²')}</span><span>${fmt(k.thermal.kWh)} kWh/yr</span>
+    <span>${tr('Value vs electric heater', 'القيمة مقابل سخان كهرباء')}</span><span>${money(k.thermal.egp)}/${tr('yr', 'سنة')}</span></div>
+    <div class="note">${tr('Heat, not electricity: usually the cheapest solar upgrade for homes, dairies, poultry and food drying. Not counted in the ranking above.', 'حرارة مش كهرباء: غالباً أرخص ترقية شمسية للبيوت والألبان والدواجن وتجفيف الغذاء. مش محسوبة في الترتيب فوق.')}</div></div>`);
+  if (k.csp) {
+    const d = k.csp.dni, st = d >= 2000 ? ['Excellent DNI', 'إشعاع مباشر ممتاز'] : d >= 1800 ? ['Good DNI', 'إشعاع مباشر جيد'] : ['DNI too low', 'الإشعاع المباشر قليل'];
+    out.push(`<div class="tech dim"><div class="tech-h"><b>🪞 ${tr('Concentrated solar (CSP)', 'الطاقة الشمسية المركزة (CSP)')}</b>${chip('info')}</div>
+      <div class="kv"><span>DNI</span><span>${fmt(d)} kWh/m²/yr</span><span>${tr('Verdict', 'التقييم')}</span><span>${tr(st[0], st[1])}</span></div>
+      <div class="note">${tr('CSP only makes sense at utility scale (tens of MW) with direct sunlight above ~1,800–2,000 kWh/m²/yr. Not sized for your demand.', 'CSP منطقية بس على مستوى المحطات (عشرات الميجا) مع إشعاع مباشر فوق ~1,800–2,000 kWh/م²/سنة. مش محسوبة لاستهلاكك.')}</div></div>`);
+  }
+  out.push(`<div class="tech dim"><div class="tech-h"><b>🌋 ${tr('Geothermal · 🌊 Wave/Tidal', 'جيوحرارية · 🌊 أمواج/مد')}</b>${chip('na')}</div>
+    <div class="note" style="border:0;padding:0;margin:0">${tr('NASA POWER has no ground-temperature or ocean data, so these cannot be assessed here. Geothermal needs a geological survey; tidal range is negligible on Egypt’s coasts.', 'NASA POWER مفيهاش بيانات حرارة أرض أو محيطات، فمينفعش نقيّمهم هنا. الجيوحرارية تحتاج مسح جيولوجي، والمد والجزر ضعيف جداً على سواحل مصر.')}</div></div>`);
+  return out.join('');
+}
+
+function specItems(t, M) {
+  const x = [], ctx = M.ctx;
+  const add = (v, l) => x.push(`<div><b>${v}</b><span>${l}</span></div>`);
+  add(fmt(M.ctx.targetDay, 1) + ' kWh', tr('Required per day', 'المطلوب يومياً'));
+  if (t.id === 'pv') { add(`${t.panels} × ${ctx.panelW} W`, tr('Panels', 'الألواح')); add(fmt(t.kW, 1) + ' kWp', tr('Array size', 'قدرة الحقل')); add(fmt(t.inverter) + ' kW', tr('Inverter', 'الإنفرتر')); }
+  if (t.id === 'wind') { add(`${t.n} × ${fmt(t.unit, 1)} kW`, tr('Turbines', 'التوربينات')); add(fmt(t.diam, 1) + ' m', tr('Rotor diameter', 'قطر الريشة')); add(ctx.hub + ' m', tr('Hub height', 'ارتفاع البرج')); }
+  if (t.id === 'hybrid') { add(`${t.panels} × ${ctx.panelW} W`, tr('Panels', 'الألواح')); add(fmt(t.wK, 1) + ' kW', tr('Wind', 'رياح')); }
+  if (t.id === 'bio') { add(fmt(t.m3, 1) + ' m³/d', tr('Biogas', 'غاز حيوي')); add(fmt(t.kW) + ' kW', tr('Genset', 'مولد')); }
+  if (t.id === 'hydro') { add(fmt(t.kW, 1) + ' kW', tr('Turbine', 'التوربين')); add(fmt(ctx.flow) + ' L/s', tr('Flow', 'التدفق')); }
+  if (t.batt > 0) add(fmt(t.batt, 1) + ' kWh', tr('Battery (nominal)', 'البطارية (اسمية)'));
+  add(fmt(t.annualKWh) + ' kWh', tr('Yearly output', 'الإنتاج السنوي'));
+  add(fmt(t.cf * 100) + '%', tr('Capacity factor', 'معامل السعة'));
+  add(money(t.capex), tr('Investment', 'الاستثمار'));
+  add(pbText(t.payback), tr('Payback', 'الاسترداد'));
+  add(fmtM(t.npv), tr('25-yr NPV (EGP)', 'صافي القيمة (جنيه)'));
+  add(fmt(t.co2, 1) + ' t', tr('CO₂ avoided / yr', 'CO₂ متجنب / سنة'));
+  return x.join('');
+}
+
+function whyLines(M) {
+  const w = M.winner, cl = M.clim, L = [], pv = M.techs[0], wi = M.techs[1];
+  L.push(tr(`Solar resource: ${fmt(cl.ann.ghi, 2)} kWh/m²/day (${cl.ann.ghi >= 5.5 ? 'excellent' : cl.ann.ghi >= 4.5 ? 'good' : 'moderate'}).`, `المورد الشمسي: ${fmt(cl.ann.ghi, 2)} kWh/م²/يوم (${cl.ann.ghi >= 5.5 ? 'ممتاز' : cl.ann.ghi >= 4.5 ? 'جيد' : 'متوسط'}).`));
+  if (M.hasWind) L.push(tr(`Wind: ${fmt(M.vhubAnn, 1)} m/s at ${M.ctx.hub} m → capacity factor ${fmt(M.cfAnn * 100)}% (${M.cfAnn >= 0.3 ? 'strong' : M.cfAnn >= 0.2 ? 'decent' : 'weak'}).`, `الرياح: ${fmt(M.vhubAnn, 1)} م/ث عند ${M.ctx.hub} م → معامل سعة ${fmt(M.cfAnn * 100)}% (${M.cfAnn >= 0.3 ? 'قوية' : M.cfAnn >= 0.2 ? 'مقبولة' : 'ضعيفة'}).`));
+  if (w.eligible) L.push(tr(`${w.en} costs about ${fmt(w.lcoe, 2)} EGP/kWh vs ${fmt(M.ctx.price, 2)} EGP/kWh you pay now; payback ${pbText(w.payback)}.`, `${w.ar} بتكلف حوالي ${fmt(w.lcoe, 2)} جنيه/kWh مقابل ${fmt(M.ctx.price, 2)} جنيه/kWh بتدفعها دلوقتي؛ الاسترداد ${pbText(w.payback)}.`));
+  if (M.dailyOk) L.push(tr(`Measured daily variability (last full year): solar CV ${fmt(M.cvPV, 2)}${M.dna.wind ? ', wind CV ' + fmt(M.cvW, 2) : ''}.`, `التذبذب اليومي المقاس (آخر سنة كاملة): CV للشمس ${fmt(M.cvPV, 2)}${M.dna.wind ? '، للرياح ' + fmt(M.cvW, 2) : ''}.`));
+  return L;
+}
+
+function tipsList(M) {
+  const lat = M.lat, cl = M.clim, T = [], tilt = Math.round(Math.abs(lat) * 0.76 + 3);
+  T.push([tr(`Fixed PV tilt ≈ ${tilt}° facing ${lat >= 0 ? 'south' : 'north'} gives the best yearly yield here.`, `ميل الألواح الثابتة ≈ ${tilt}° ناحية ${lat >= 0 ? 'الجنوب' : 'الشمال'} بيدي أفضل إنتاج سنوي هنا.`), '']);
+  T.push([tr('Dust is the main hidden loss in Egypt: clean panels every 2–4 weeks (early morning, soft water) and the 80% performance ratio holds.', 'التراب أكبر خسارة مخفية في مصر: نضّف الألواح كل 2–4 أسابيع (الصبح بدري، مياه ناعمة) وبكده معامل الأداء 80% يفضل ثابت.'), '']);
+  if (cl.ann.t2m >= 24) T.push([tr('Hot site: panels lose ~0.35% per °C above 25 °C. Leave ventilation gaps behind them and prefer low temperature-coefficient modules.', 'موقع حار: الألواح بتخسر ~0.35% لكل درجة فوق 25°. سيب فراغ تهوية وراها واختار ألواح بمعامل حرارة منخفض.'), 'warn']);
+  if (M.off) T.push([tr('Off-grid: size the battery for your real night loads, use LiFePO4 with a proper BMS, and keep a generator or grid link for the longest cloudy/calm stretch.', 'معزول: احسب البطارية على أحمال الليل الفعلية، استخدم LiFePO4 مع BMS، وخلي مولد أو توصيلة شبكة لأطول فترة غيوم/هدوء.'), 'warn']);
+  else T.push([tr('Grid-connected: ask your distribution company about net-metering terms and the required meter/permits before ordering.', 'متصل بالشبكة: اسأل شركة التوزيع عن شروط net metering والعداد والتراخيص المطلوبة قبل الشراء.'), '']);
+  if (M.hasWind && M.cfAnn >= 0.12 && M.cfAnn < 0.25) T.push([tr('Wind is borderline: mount an anemometer at hub height for 6–12 months before spending on turbines.', 'الرياح على الحد: ركّب أنيمومتر عند ارتفاع البرج 6–12 شهر قبل ما تصرف على توربينات.'), 'warn']);
+  if (M.ctx.heads > 0) T.push([tr('Biogas digesters give best results at 25–38 °C and steady feeding; the digested slurry is a good fertiliser (extra value).', 'هاضمات البيوجاز بتدي أفضل نتيجة عند 25–38° مع تغذية منتظمة؛ والمخلف سماد ممتاز (قيمة إضافية).'), '']);
+  T.push([tr('Efficiency first: LED lighting, inverter-driven pumps and efficient AC are cheaper per kWh saved than any generation.', 'الكفاءة الأول: إضاءة LED ومضخات بإنفرتر وتكييف موفر أرخص لكل kWh بتوفره من أي توليد.'), '']);
+  return T;
+}
+
+function destroyCharts() { Object.values(state.charts).forEach(c => c && c.destroy()); state.charts = {}; }
+function chartDefaults() { Chart.defaults.color = '#8b949e'; Chart.defaults.borderColor = 'rgba(48,54,61,.7)'; Chart.defaults.font.family = lang === 'ar' ? 'Cairo' : 'Syne'; }
+
+function renderResults() {
+  const M = state.model; if (!M) return;
+  const cl = M.clim, ctx = M.ctx, w = M.winner, el = $('site-results');
+  destroyCharts();
+  const tile = (v, u, l) => `<div class="tile"><div class="v">${v}</div><div class="u">${u}</div><div class="l">${l}</div></div>`;
+  const tiles = [
+    tile(fmt(cl.ann.ghi, 2), 'kWh/m²/day', tr('Solar (GHI)', 'الإشعاع الشمسي')),
+    cl.ann.dni ? tile(fmt(cl.ann.dni, 2), 'kWh/m²/day', tr('Direct sun (DNI)', 'الإشعاع المباشر')) : '',
+    M.hasWind ? tile(fmt(cl.ann.ws50, 1), 'm/s', tr('Wind @50 m', 'الرياح عند 50م')) : '',
+    M.hasWind ? tile(fmt(M.vhubAnn, 1), 'm/s', tr('Wind @hub ' + ctx.hub + ' m', 'الرياح عند البرج ' + ctx.hub + ' م')) : '',
+    tile(fmt(cl.ann.t2m, 1), '°C', tr('Mean temperature', 'متوسط الحرارة')),
+    tile(fmt(cl.elev), 'm', tr('Elevation', 'الارتفاع')),
+    cl.ann.rain !== null ? tile(fmt(cl.ann.rain), 'mm/yr', tr('Rain', 'الأمطار')) : '',
+    tile(fmt(M.lat, 3) + ', ' + fmt(M.lon, 3), '', tr('Coordinates', 'الإحداثيات'))
+  ].join('');
+
+  const mixTxt = M.mix ? `<li>${tr(`${w.en} covers ${fmt(w.coverage)}% of your target. Complete the remaining ${fmt(M.mix.pct)}% with about ${fmt(M.mix.pvKW, 1)} kWp of solar (${M.mix.panels} panels, ~${money(M.mix.cost)}).`, `${w.ar} بتغطي ${fmt(w.coverage)}% من هدفك. كمّل الباقي ${fmt(M.mix.pct)}% بحوالي ${fmt(M.mix.pvKW, 1)} kWp شمسي (${M.mix.panels} لوح، ~${money(M.mix.cost)}).`)}</li>` : '';
+  const rows = M.techs.filter(t => t.eligible).sort((a, b) => b.score - a.score).map(t => `<tr class="${t.id === w.id ? 'win' : ''}"><td>${t.icon} ${nm(t)}</td><td class="num">${t.score}</td><td class="num">${t.id === 'hybrid' ? fmt(t.pvK, 1) + '+' + fmt(t.wK, 1) : fmt(t.kW, 1)} kW</td><td class="num">${fmt(t.coverage)}%</td><td class="num">${fmt(t.annualKWh)}</td><td class="num">${fmtM(t.capex)}</td><td class="num">${fmt(t.lcoe, 2)}</td><td class="num">${pbText(t.payback)}</td></tr>`).join('');
+
+  const dnaRow = (label, d, streak, thrTxt) => d ? `<tr><td>${label}</td><td class="num">${fmt(d.mean, 2)}</td><td class="num">${fmt(d.cv, 2)}</td><td class="num">${fmt(d.stabIdx, 2)}</td><td class="num">${fmt(d.ramp, 2)}</td><td class="num">${d.period ? fmt(d.period) + ' ' + tr('days', 'يوم') : '—'}</td><td class="num">${streak} ${tr('days', 'يوم')}</td></tr>` : '';
+
+  el.innerHTML = `
+  <div class="sec-title">${tr('Site resources (NASA POWER)', 'موارد الموقع (NASA POWER)')}</div>
+  <div class="tiles">${tiles}</div>
+
+  <div class="winner">
+    <div class="kick">${tr('BEST ENERGY SOURCE FOR THIS LOCATION', 'أنسب مصدر طاقة للمكان ده')}</div>
+    <h3>${w.icon} ${nm(w)} <span style="font-size:.6em;color:var(--text-muted)">· ${w.score}/100</span></h3>
+    <p>${tr(`To deliver ${fmt(ctx.targetDay, 1)} kWh/day (${fmt(ctx.coverage * 100)}% of your demand), the system must be about`, `عشان يوفّر ${fmt(ctx.targetDay, 1)} kWh/يوم (${fmt(ctx.coverage * 100)}% من استهلاكك)، لازم السيستم يكون حوالي`)} <b>${w.id === 'hybrid' ? fmt(w.pvK, 1) + ' kWp PV + ' + fmt(w.wK, 1) + ' kW wind' : fmt(w.kW, 1) + ' kW'}</b>${w.batt > 0 ? tr(` with a ${fmt(w.batt, 1)} kWh battery`, ` مع بطارية ${fmt(w.batt, 1)} kWh`) : ''}.</p>
+    <ul>${whyLines(M).map(l => `<li>${l}</li>`).join('')}${mixTxt}</ul>
+  </div>
+
+  <div class="sec-title">${tr('What the system must deliver', 'المطلوب من السيستم')}</div>
+  <div class="spec">${specItems(w, M)}</div>
+
+  <div class="sec-title">${tr('All energy sources, scored', 'كل مصادر الطاقة بالتقييم')}</div>
+  <div class="tech-grid">${M.techs.map(t => techCard(t, M)).join('')}${infoCards(M)}</div>
+  <div class="hint" style="margin-top:8px">${tr('Score = 35% resource quality + 35% cost vs your tariff + 15% stability + 15% feasibility (area, budget, coverage).', 'التقييم = 35% جودة المورد + 35% التكلفة مقابل تعريفتك + 15% الاستقرار + 15% الجدوى (مساحة، ميزانية، تغطية).')}</div>
+
+  <div class="sec-title">${tr('Side-by-side comparison', 'مقارنة جنب بعض')}</div>
+  <div class="tscroll"><table><thead><tr><th>${tr('System', 'السيستم')}</th><th>${tr('Score', 'التقييم')}</th><th>${tr('Capacity', 'السعة')}</th><th>${tr('Coverage', 'التغطية')}</th><th>kWh/${tr('yr', 'سنة')}</th><th>${tr('CAPEX (EGP)', 'الاستثمار (جنيه)')}</th><th>${tr('EGP/kWh', 'جنيه/kWh')}</th><th>${tr('Payback', 'الاسترداد')}</th></tr></thead><tbody>${rows}</tbody></table></div>
+
+  <div class="sec-title">${tr('Charts', 'الرسوم البيانية')}</div>
+  <div class="charts">
+    <div class="chart-card"><h4>${tr('Monthly production vs your target (kWh)', 'الإنتاج الشهري مقابل هدفك (kWh)')} — ${nm(w)}</h4><div class="chart-box"><canvas id="chBalance"></canvas></div></div>
+    <div class="chart-card"><h4>${tr('Seasonal resource profile', 'ملف المورد الموسمي')}</h4><div class="chart-box"><canvas id="chResource"></canvas></div></div>
+    <div class="chart-card"><h4>${tr('Cumulative cash flow, 25 years (EGP)', 'التدفق النقدي التراكمي 25 سنة (جنيه)')}</h4><div class="chart-box"><canvas id="chCash"></canvas></div></div>
+  </div>
+
+  <div class="sec-title">${tr('Stability DNA (NASA daily data, last full year)', 'DNA الاستقرار (بيانات NASA اليومية، آخر سنة كاملة)')}</div>
+  ${M.dailyOk ? `<div class="tscroll"><table><thead><tr><th>${tr('Series', 'السلسلة')}</th><th>${tr('Mean', 'المتوسط')}</th><th>CV</th><th>${tr('Stability idx', 'مؤشر الاستقرار')}</th><th>${tr('Max ramp', 'أكبر قفزة')}</th><th>${tr('Main cycle', 'الدورة الرئيسية')}</th><th>${tr('Longest low streak', 'أطول فترة ضعف')}</th></tr></thead><tbody>
+    ${dnaRow(tr('Solar GHI (kWh/m²/d)', 'إشعاع شمسي (kWh/م²/يوم)'), M.dna.pv, M.st.pv)}
+    ${dnaRow(tr('Wind capacity factor (daily)', 'معامل سعة الرياح (يومي)'), M.dna.wind, M.st.wind)}
+    </tbody></table></div>
+    <div class="hint" style="margin-top:8px">${M.corr !== null ? tr(`Sun–wind daily correlation: ${fmt(M.corr, 2)} (${M.corr < -0.2 ? 'complementary: a hybrid needs less storage' : M.corr > 0.2 ? 'they peak together: little hybrid benefit' : 'mostly independent'}).`, `الارتباط اليومي شمس–رياح: ${fmt(M.corr, 2)} (${M.corr < -0.2 ? 'متكاملين: الهجين يحتاج تخزين أقل' : M.corr > 0.2 ? 'بيزيدوا مع بعض: فايدة الهجين قليلة' : 'مستقلين تقريباً'}).`) : ''}
+    <button class="btn" style="margin-inline-start:10px" onclick="loadNasaSeries('ghi',true)">🧬 ${tr('Open in Data Lab', 'افتح في معمل البيانات')}</button></div>`
+    : `<div class="disclaimer">${tr('Daily series was not available, so typical variability values were used.', 'السلسلة اليومية مش متاحة، فاتستخدمت قيم تذبذب نموذجية.')}</div>`}
+
+  <div class="sec-title">${tr('Tips for this site', 'نصايح للمكان ده')}</div>
+  <ul class="tips">${tipsList(M).map(t => `<li class="${t[1]}">${t[0]}</li>`).join('')}</ul>
+
+  <div class="disclaimer">${tr('NASA POWER is a gridded satellite/model dataset (roughly 50–100 km cells), so local terrain, obstacles and microclimate can differ. Costs are editable estimates, not quotes. Use this as a screening study, then confirm with on-site measurements and supplier offers. Surplus feed-in and net-metering rules depend on your distribution company.', 'NASA POWER بيانات شبكية من الأقمار والنماذج (خلايا حوالي 50–100 كم)، فالتضاريس والعوائق والمناخ المحلي ممكن يختلفوا. التكاليف تقديرات قابلة للتعديل مش عروض أسعار. استخدمها كدراسة أولية، وبعدها أكّد بقياسات في الموقع وعروض موردين. قواعد تغذية الفائض والـ net metering بتعتمد على شركة التوزيع.')}
+    <div style="margin-top:10px"><button class="btn" onclick="window.print()">🖨️ ${tr('Print / save PDF', 'طباعة / حفظ PDF')}</button></div></div>`;
+  el.style.display = 'block';
+  drawCharts(M);
+}
+
+function drawCharts(M) {
+  chartDefaults();
+  const w = M.winner, mn = monthNames(), D = M.Dm;
+  const sets = [];
+  const col = { pv: '#e3882a', wind: '#388bfd', bio: '#2ea043', hydro: '#58a6ff' };
+  const lab = { pv: tr('Solar', 'شمس'), wind: tr('Wind', 'رياح'), bio: tr('Biogas', 'بيوجاز'), hydro: tr('Hydro', 'مائية') };
+  const gen = Object.assign({}, w.gen);
+  if (M.mix) gen.pv = M.mix.pvGen;
+  Object.keys(gen).forEach(k => sets.push({ type: 'bar', label: lab[k], data: gen[k].map(v => +v.toFixed(0)), backgroundColor: col[k] + 'cc', stack: 's', order: 2 }));
+  sets.push({ type: 'line', label: tr('Target', 'الهدف'), data: D.map(v => +v.toFixed(0)), borderColor: '#f85149', borderDash: [6, 4], pointRadius: 0, order: 1 });
+  state.charts.bal = new Chart($('chBalance'), { data: { labels: mn, datasets: sets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } } });
+
+  const rs = [{ label: tr('GHI (kWh/m²/day)', 'إشعاع (kWh/م²/يوم)'), data: M.clim.ghi, borderColor: '#e3882a', backgroundColor: '#e3882a33', tension: .3, yAxisID: 'y', fill: true }];
+  const sc = { y: { beginAtZero: true, title: { display: true, text: 'kWh/m²/day' } } };
+  if (M.hasWind) { rs.push({ label: tr('Wind @hub (m/s)', 'رياح عند البرج (م/ث)'), data: M.vhub.map(v => +v.toFixed(2)), borderColor: '#388bfd', tension: .3, yAxisID: 'y2' }); sc.y2 = { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'm/s' } }; }
+  state.charts.res = new Chart($('chResource'), { type: 'line', data: { labels: mn, datasets: rs }, options: { responsive: true, maintainAspectRatio: false, scales: sc } });
+
+  if (w.flow && w.flow.length) state.charts.cash = new Chart($('chCash'), { type: 'line', data: { labels: w.flow.map((_, i) => i), datasets: [{ label: tr('Cumulative cash (EGP)', 'التراكمي (جنيه)'), data: w.flow.map(v => Math.round(v)), borderColor: '#2ea043', backgroundColor: '#2ea04322', fill: true, tension: .2, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: tr('Year', 'السنة') } } } } });
+}
+/* ───────── DATA LAB ───────── */
+const labState = { dna: null, values: [], type: 'ghi' };
+
+async function loadNasaSeries(type, fromResults) {
+  const lat = parseFloat($('lat').value), lon = parseFloat($('lon').value);
+  const err = $('lab-err');
+  if (!isFinite(lat) || !isFinite(lon)) { showTab('site'); setStatus('warn', tr('Pick a location first.', 'اختار مكان الأول.')); return; }
+  const key = lat + ',' + lon;
+  try {
+    if (!state.daily || state.dailyKey !== key) { state.daily = await fetchDaily(lat, lon); state.dailyKey = key; }
+  } catch (e) { showTab('lab'); err.textContent = tr('Could not fetch NASA daily data.', 'مقدرناش نجيب بيانات NASA اليومية.'); err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  const d = state.daily; const arr = { ghi: d.ghi, wind: d.ws, temp: d.t }[type].filter(v => v !== null);
+  $('data-input').value = arr.join(', ');
+  $('est-type').value = type === 'temp' ? 'power' : type;
+  $('csv-name').textContent = `NASA POWER · ${d.year} · ${type.toUpperCase()}`;
+  onEstType();
+  showTab('lab'); analyzeLab();
+}
+
+function handleCSV(event) {
+  const file = event.target.files[0]; if (!file) return;
+  $('csv-name').textContent = '📄 ' + file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.replace(/\r\n?/g, '\n').split('\n').map(l => l.trim()).filter(Boolean);
+    const delim = lines.some(l => l.includes(';')) ? ';' : ',';
+    let hdr = -1, start = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i]; if (/^[-#!]/.test(l) && isNaN(parseFloat(l))) continue;
+      const cols = l.split(delim).map(c => c.trim().replace(/['"]/g, ''));
+      if (isNaN(parseFloat(cols[0]))) { hdr = i; start = i + 1; } else { start = i; break; }
+    }
+    const target = hdr >= 0 ? lines[hdr].split(delim).length - 1 : -1;
+    const vals = [];
+    for (let i = start; i < lines.length; i++) {
+      if (/^[-#!]/.test(lines[i]) && isNaN(parseFloat(lines[i]))) continue;
+      const cols = lines[i].split(delim).map(c => c.trim().replace(/['"]/g, ''));
+      let n;
+      if (target >= 0 && target < cols.length) n = parseFloat(cols[target]);
+      else for (let j = cols.length - 1; j >= 0; j--) { const v = parseFloat(cols[j]); if (!isNaN(v)) { n = v; break; } }
+      if (n !== undefined && !isNaN(n) && n > -998) vals.push(n);
+    }
+    const err = $('lab-err');
+    if (!vals.length) { err.textContent = tr('No numeric values found in the CSV.', 'مفيش أرقام في ملف CSV.'); err.style.display = 'block'; return; }
+    err.style.display = 'none'; $('data-input').value = vals.join(', ');
+  };
+  reader.readAsText(file);
+}
+
+function analyzeLab() {
+  const err = $('lab-err'); err.style.display = 'none';
+  const vals = $('data-input').value.split(/[\s,;،]+/).map(parseFloat).filter(v => !isNaN(v));
+  if (vals.length < 4) { err.textContent = tr('Enter at least 4 values.', 'أدخل 4 قيم على الأقل.'); err.style.display = 'block'; return; }
+  labState.dna = computeDNA(vals); labState.values = vals;
+  renderLab();
+  $('lab-results').style.display = 'block';
+  calcLabOutput();
+}
+
+function renderLab() {
+  const d = labState.dna; if (!d) return;
+  const card = (l, v, desc) => `<div class="metric-card"><div class="metric-label">${l}</div><div class="metric-value">${v}</div><div class="metric-desc">${desc}</div></div>`;
+  $('lab-metrics').innerHTML = [
+    card(tr('Mean', 'المتوسط'), fmt(d.mean, 3), tr('Average value', 'القيمة المتوسطة')),
+    card(tr('Variance', 'التباين'), fmt(d.variance, 3), tr('Spread (unit²)', 'التشتت (وحدة²)')),
+    card(tr('Std deviation', 'الانحراف المعياري'), fmt(d.std, 3), tr('Spread around mean', 'التشتت حول المتوسط')),
+    card('CV', fmt(d.cv, 3), tr('Std ÷ mean: unit-free', 'الانحراف ÷ المتوسط: بدون وحدة')),
+    card(tr('Max ramp', 'أكبر قفزة'), fmt(d.ramp, 3), tr('Biggest step between readings', 'أكبر تغير بين قراءتين')),
+    card(tr('Stability index', 'مؤشر الاستقرار'), fmt(d.stabIdx, 3), tr('1/(1+CV²): 1 = perfectly stable', '1/(1+CV²): 1 = مستقر تماماً')),
+    card(tr('Main cycle', 'الدورة الرئيسية'), d.period ? fmt(d.period, 1) : '—', tr('Samples per cycle (Fourier)', 'عينات لكل دورة (فورير)'))
+  ].join('');
+  // chart
+  if (state.charts.lab) state.charts.lab.destroy();
+  chartDefaults();
+  const v = labState.values, m = d.mean;
+  state.charts.lab = new Chart($('labChart'), { type: 'line', data: { labels: v.map((_, i) => i + 1), datasets: [
+    { label: tr('Series', 'السلسلة'), data: v, borderColor: '#388bfd', pointRadius: v.length > 100 ? 0 : 2, borderWidth: 1.5, tension: .15 },
+    { label: tr('Mean', 'المتوسط'), data: v.map(() => m), borderColor: '#2ea043', borderDash: [6, 4], pointRadius: 0 },
+    { label: '+1σ', data: v.map(() => m + d.std), borderColor: '#e3882a66', pointRadius: 0, borderWidth: 1 },
+    { label: '−1σ', data: v.map(() => m - d.std), borderColor: '#e3882a66', pointRadius: 0, borderWidth: 1 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxTicksLimit: 12 } } } } });
+  // interpretation
+  const it = [];
+  if (d.cv < 0.2) it.push(['', tr(`<strong>Stable source</strong>: CV ${fmt(d.cv, 2)} means readings stay close to the mean.`, `<strong>مصدر مستقر</strong>: CV ${fmt(d.cv, 2)} يعني القراءات قريبة من المتوسط.`)]);
+  else if (d.cv < 0.5) it.push(['warn', tr(`<strong>Moderate variability</strong>: CV ${fmt(d.cv, 2)}. Some storage or a grid link will smooth delivery.`, `<strong>تذبذب متوسط</strong>: CV ${fmt(d.cv, 2)}. تخزين بسيط أو ربط بالشبكة هيساوي الإمداد.`)]);
+  else it.push(['warn', tr(`<strong>High variability</strong>: CV ${fmt(d.cv, 2)}. Plan for storage, backup, or pairing with a complementary source.`, `<strong>تذبذب عالي</strong>: CV ${fmt(d.cv, 2)}. خطط لتخزين أو احتياطي أو مصدر مكمّل.`)]);
+  if (d.mean > 0 && d.ramp > 0.5 * d.mean) it.push(['warn', tr(`<strong>Sharp jumps</strong>: largest step ${fmt(d.ramp, 2)} (over 50% of the mean).`, `<strong>قفزات حادة</strong>: أكبر خطوة ${fmt(d.ramp, 2)} (أكتر من 50% من المتوسط).`)]);
+  else it.push(['', tr(`<strong>Gradual changes</strong>: largest step ${fmt(d.ramp, 2)}.`, `<strong>تغيرات تدريجية</strong>: أكبر خطوة ${fmt(d.ramp, 2)}.`)]);
+  if (d.period) it.push(['info', tr(`<strong>Dominant cycle</strong>: the pattern repeats about every ${fmt(d.period, 1)} samples${d.n >= 300 && Math.abs(d.period - d.n) < 5 ? ' (a yearly season)' : ''}.`, `<strong>الدورة السائدة</strong>: النمط بيتكرر تقريباً كل ${fmt(d.period, 1)} عينة${d.n >= 300 && Math.abs(d.period - d.n) < 5 ? ' (موسم سنوي)' : ''}.`)]);
+  $('lab-interp').innerHTML = it.map(i => `<li><div class="dot ${i[0]}"></div><span>${i[1]}</span></li>`).join('');
+}
+
+function onEstType(keep) {
+  const t = $('est-type').value;
+  $('est-hours-f').style.display = t === 'power' ? 'flex' : 'none';
+  $('est-area-l').textContent = t === 'wind' ? tr('Rotor swept area (m²)', 'مساحة مسح الريشة (م²)') : tr('Panel area (m²)', 'مساحة الألواح (م²)');
+  $('est-eff-l').textContent = t === 'wind' ? tr('Power coefficient Cp (%)', 'معامل القدرة Cp (%)') : tr('Panel efficiency (%)', 'كفاءة الألواح (%)');
+  $('est-area').parentElement.style.display = t === 'power' ? 'none' : 'flex';
+  $('est-eff').parentElement.style.display = t === 'power' ? 'none' : 'flex';
+  if (!keep) $('est-eff').value = t === 'wind' ? 35 : 20;
+}
+function calcLabOutput() {
+  const d = labState.dna; if (!d) return;
+  const t = $('est-type').value, g = id => parseFloat($(id).value);
+  const area = g('est-area') || 50, eff = (g('est-eff') || 20) / 100, price = g('est-price') || 2.18, home = g('est-home') || 20, hours = g('est-hours') || 24;
+  let kwhDay = 0;
+  if (t === 'ghi') kwhDay = area * eff * d.mean * 0.8;
+  else if (t === 'wind') { const rho = 1.2; kwhDay = avg(labState.values.map(v => v < 3 || v > 25 ? 0 : 0.5 * rho * area * eff * Math.pow(Math.min(v, 12), 3) / 1000)) * 24; }
+  else kwhDay = d.mean * hours;
+  const o = [[fmt(kwhDay, 1), tr('kWh / day', 'kWh / يوم')], [fmt(kwhDay * 30), tr('kWh / month', 'kWh / شهر')], [fmt(kwhDay / home, 1), tr('Homes powered', 'بيوت بتشتغل')], [fmt(kwhDay * 30 * price), tr('EGP / month value', 'جنيه / شهر قيمة')]];
+  const el = $('est-out'); el.style.display = 'grid';
+  el.innerHTML = o.map(x => `<div class="output-card"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');
+}
+
+/* ───────── INIT ───────── */
+document.addEventListener('keydown', e => { if (e.ctrlKey && e.key === 'Enter') { $('tab-lab').classList.contains('active') ? analyzeLab() : runAnalysis(); } });
+window.addEventListener('DOMContentLoaded', () => {
+  applyLang();
+  initLeaflet();
+  const k = getGKey(); if (k) { $('gkey').value = k; }
+});
+
+</script>
+</body>
+</html>
